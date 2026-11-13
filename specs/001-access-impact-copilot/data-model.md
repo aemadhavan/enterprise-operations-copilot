@@ -8,9 +8,9 @@ Postgres (Neon) with the `vector` extension. Every table includes `created_at ti
 | Field | Type | Notes |
 |---|---|---|
 | doc_id | text PK | e.g. `POL-014` |
-| title, doc_type, version, owner, source_system | text | From front matter. `doc_type` ∈ policy, procedure, reference, standard, incident, meeting |
+| title, doc_type, version, owner, source_system | text | From front matter. `doc_type` ∈ policy, procedure, reference, standard, incident, meeting_notes (the fixture value) |
 | effective_date | date null | Documents with no effective date (e.g. `MTG-*`) are treated as discussion material (FR-008) |
-| is_authoritative | bool | `doc_type <> 'meeting'` |
+| is_authoritative | bool | `doc_type <> 'meeting_notes'` |
 | content_hash | text | Used to detect fixture drift |
 
 ### chunks (FR-001, FR-004)
