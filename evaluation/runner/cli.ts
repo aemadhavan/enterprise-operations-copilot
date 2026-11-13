@@ -162,7 +162,8 @@ async function main() {
           judge: config.JUDGE_MODEL,
           note: "Tier 1a makes no chat-model calls",
         },
-        graph: "not yet implemented (T025); graphrag = baseline in M2",
+        graph:
+          "graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)",
         duration_ms,
       },
       results,

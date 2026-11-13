@@ -23,4 +23,6 @@ export interface CaseResult {
   retrieved_docs?: string[];
   expected_sources?: string[];
   latency_ms?: number;
+  graph_seeds?: string[]; // graphrag mode: entity seeds used for graph_query
+  graph_edges?: number;
 }
