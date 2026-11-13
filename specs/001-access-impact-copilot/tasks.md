@@ -44,9 +44,9 @@
 - [X] T014 [P] [US1] **P0** Unit-test the recall@5 metric: top 5 **distinct** doc IDs from the ranked list, plus every returned edge `source_doc` on graph routes, score = found ÷ min(5, |expected|), empty `expected_sources` skipped in `evaluation/runner/metrics/recall.ts` and `tests/unit/recall.test.ts` — SC-010, clarification 1
 
 ### Tier-1a eval runner (immediately after search)
-- [ ] T015 [US1] **P0** Build eval runner CLI: load golden set, `--cases GS-001..GS-008,GS-018..GS-020` ranges, `--category`, `--mode baseline|graphrag|both`, `--runs`, dotenv `.env.local` in `evaluation/runner/cli.ts` — FR-018, FR-022
-- [ ] T016 [US1] **P0** Implement Tier 1a: run `validate_seed.py`, call `lib/retrieval` directly (no chat model), compute recall@5 per case and mode in `evaluation/runner/tier1a.ts` — FR-020, FR-021
-- [ ] T017 [US1] **P0** Write results + gates: `evaluation/results/<ts>-1a-<mode>.jsonl` (records date, models, embedding model, dataset hash), `summary.md`, milestone thresholds from spec §6, non-zero exit on gate failure, regression guard against `evaluation/results/last-pass.json` in `evaluation/runner/report.ts` — FR-018, Constitution III/VIII
+- [X] T015 [US1] **P0** Build eval runner CLI: load golden set, `--cases GS-001..GS-008,GS-018..GS-020` ranges, `--category`, `--mode baseline|graphrag|both`, `--runs`, dotenv `.env.local` in `evaluation/runner/cli.ts` — FR-018, FR-022
+- [X] T016 [US1] **P0** Implement Tier 1a: run `validate_seed.py`, call `lib/retrieval` directly (no chat model), compute recall@5 per case and mode in `evaluation/runner/tier1a.ts` — FR-020, FR-021
+- [X] T017 [US1] **P0** Write results + gates: `evaluation/results/<ts>-1a-<mode>.jsonl` (records date, models, embedding model, dataset hash), `summary.md`, milestone thresholds from spec §6, non-zero exit on gate failure, regression guard against `evaluation/results/last-pass.json` in `evaluation/runner/report.ts` — FR-018, Constitution III/VIII
 - [ ] T018 [US1] **P0** Run `pnpm eval:fast` on the M2 cases; if recall@5 < 90%, tune chunking/k/RRF (not the fixture) until it passes; commit `last-pass.json` — SC-010 **(M2 gate)**
 
 ### Answering (still no UI)
