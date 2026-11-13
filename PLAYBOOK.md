@@ -80,3 +80,4 @@ Then run `python3 scripts/validate_seed.py`.
 | Hide low scores | Publish them with the reason and the next step |
 | Let the model choose between free-form tools | Use a fixed router map and narrow tool schemas |
 | Copy policy text into prompts | Retrieve it and cite it |
+| Copy golden-set questions (or close paraphrases) into prompts as examples | Write new illustrative examples; `tests/unit/prompts-no-golden.test.ts` fails on any 6-word overlap with a golden question |
