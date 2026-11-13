@@ -183,7 +183,7 @@ If the UI toggle in step 3 was cut (§10.1 cut line), show the baseline vs Graph
 | LLM03 Supply chain | Pinned dependency versions; lockfile committed; Dependabot alerts | CI |
 | LLM04 Data and model poisoning | Corpus is fixed and committed; any change goes through PR and `validate_seed.py` | CI |
 | LLM05 Improper output handling | Tool arguments validated against schema (Zod) before any call; model output rendered as sanitised Markdown, never raw HTML | Unit tests |
-| LLM06 Excessive agency | Only 2 write tools, both mock, both confirmation-gated; read/write risk declared per tool; social-engineering pressure ("skip approvals") refused | SC-006 = 100%; GS-026 |
+| LLM06 Excessive agency | Only 2 write tools, both mock, both confirmation-gated; read / propose / write risk declared per tool (the agent gets read + propose only); social-engineering pressure ("skip approvals") refused | SC-006 = 100%; GS-026 |
 | LLM07 System prompt leakage | No secrets in prompts; keys only in env vars | Code review |
 | LLM08 Vector and embedding weaknesses | Ingestion only from the committed corpus; doc_id provenance on every chunk | validate_seed.py |
 | LLM09 Misinformation | Grounded-or-silent rule; citation accuracy gated in CI | SC-001, SC-002, GS-017, GS-019 |

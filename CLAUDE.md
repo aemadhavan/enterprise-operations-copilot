@@ -30,7 +30,7 @@ When the PRD and the spec disagree, the spec wins for requirements and the PRD w
   - *Rejected:* the Claude Agent SDK as the app runtime. It runs Claude Code as a subprocess and needs a persistent container or sandbox, which doesn't fit plain Vercel functions (risk to M6). Claude Code stays our **build** tool.
   - *Why this is better here:* the confirmation gate (FR-010) lives in our own loop, where it's easy to see and test.
   - Loop limits: max 6 tool iterations, max tokens per request (PRD §8.1, LLM10).
-- **ADR-004 Tools:** MCP server **in-process** via `@modelcontextprotocol/sdk` (no stdio child process). Each tool declares `risk: read | write`. Write tools are mocks labelled "simulated".
+- **ADR-004 Tools:** MCP server **in-process** via `@modelcontextprotocol/sdk` (no stdio child process). Each tool declares `risk: read | propose | write` (`propose` = creates/supersedes draft rows only, allowed in the agent loop; `write` = confirm route only). Write tools are mocks labelled "simulated".
 - **ADR-005 Graph tool:** three seed modes: node ID + hop limit, label/classification filter, relation type (FR-005b).
 - **ADR-006 Orchestration:** on confirm, emit `access_request.submitted`. **Preferred:** a durable **Vercel Workflow** (`workflow` package, `withWorkflow` in `next.config.ts`). One hook per approver, raced against an SLA `sleep()`; one `"use step"` per transition writing an audit record (FR-024, FR-024a, FR-024b).
   - **Fallback:** in-process event bus + in-memory state machine with the same states. Switch to it if the workflow isn't working by **Sat 22:00 (M4)**.

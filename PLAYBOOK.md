@@ -34,7 +34,11 @@ Then run `python3 scripts/validate_seed.py`.
 **Review question:** *If this fact changes, how many places need editing? It should be one.*
 
 ### 4. Add tools with the right risk level (Constitution II, V)
-- Read tools run freely. Write tools must:
+- Pick one of three risk levels:
+  - `read`: no side effects; runs freely in the agent loop.
+  - `propose`: may only create or supersede **draft** rows; no business record changes; allowed in the agent loop. Use it for anything the agent prepares for a human to submit.
+  - `write`: changes business records; callable **only** from the confirmation route, never from the agent loop. The agent's MCP client allow-lists `read` + `propose`.
+- Write tools must:
   - declare `risk: "write"`;
   - validate their arguments against a schema;
   - run only after an action-confirmation event (enforced in code);

@@ -1,6 +1,6 @@
 # Enterprise Operations Copilot — Constitution
 
-**Version:** 1.1.1 (PATCH: III wording split into Tier 1a / Tier 1b; 1.1.0 added continuous-evaluation rules to III) · **Ratified:** 2026-11-13 · **Applies to:** every spec, plan, task and line of code in this repository, whether written by a human or an AI coding agent.
+**Version:** 1.2.0 (MINOR: V adds the `propose` risk level; 1.1.1 split III into Tier 1a / Tier 1b; 1.1.0 added continuous-evaluation rules to III) · **Ratified:** 2026-11-13 · **Applies to:** every spec, plan, task and line of code in this repository, whether written by a human or an AI coding agent.
 
 These principles are non-negotiable. If a spec, plan or task conflicts with them, the constitution wins and the conflicting artefact is changed first.
 
@@ -36,7 +36,7 @@ These principles are non-negotiable. If a spec, plan or task conflicts with them
 - Only synthetic data is committed. No client, employer or personal data, ever.
 - Secrets live in environment variables. `.env.example` is committed; `.env` is never committed.
 - Logs and traces pass through PII redaction before they are stored.
-- Each tool declares its risk level (`read` | `write`) and the roles allowed to call it.
+- Each tool declares its risk level (`read` | `propose` | `write`) and the roles allowed to call it. `propose` tools may only create or supersede draft rows; they change no business record and may run in the agent loop. `write` tools change business records and are callable only from the confirmation path (Principle II).
 
 ## VI. The Spec Is the Source of Truth
 

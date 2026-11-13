@@ -1,6 +1,6 @@
 # Contract: MCP tools (in-process server, FR-014)
 
-Every tool declares `name`, `description`, `inputSchema` (JSON Schema generated from Zod; `strict: true`, `additionalProperties: false`), `risk` (`read` | `write`) and `allowed_roles`. Output is JSON. Tool inputs are parsed with Zod again before execution (LLM05).
+Every tool declares `name`, `description`, `inputSchema` (JSON Schema generated from Zod; `strict: true`, `additionalProperties: false`), `risk` (`read` | `propose` | `write`) and `allowed_roles`. Output is JSON. Tool inputs are parsed with Zod again before execution (LLM05).
 
 | Tool | Risk | Who may call it | Purpose |
 |---|---|---|---|
@@ -9,12 +9,12 @@ Every tool declares `name`, `description`, `inputSchema` (JSON Schema generated 
 | `graph_query` | read | agent | Graph traversal with three seed modes (FR-005b) |
 | `lookup_approvals` | read | agent | Resolve the REF-005 approval chain plus named approvers for a system and requester type |
 | `check_policy` | read | agent | Deterministic checks: duration max, contractor admin, vendor assessment validity |
-| `propose_access_request` | read* | agent | Creates a **draft** row only (FR-009). *It changes no business record, so it is classed as read |
-| `propose_onboarding_ticket` | read* | agent | Creates a **draft** row only (FR-026) |
+| `propose_access_request` | propose | agent | Creates or supersedes a **draft** row only (FR-009); no business record changes |
+| `propose_onboarding_ticket` | propose | agent | Creates or supersedes a **draft** row only (FR-026); no business record changes |
 | `create_access_request` | **write** | `confirm` route only | Executes a confirmed draft (FR-010) |
 | `create_onboarding_ticket` | **write** | `confirm` route only | Executes a confirmed draft (FR-026) |
 
-**Gate (FR-010):** the agent's tool list never contains a `write` tool. The MCP client used by the agent loop is built with a filter `risk === 'read'`. The server also rejects `write` calls unless the call context carries a valid `ConfirmationEvent {draft_id, confirmed_by, at}` created by `POST /api/drafts/{id}/confirm`. There is no tool that resumes approval hooks (FR-024a).
+**Gate (FR-010):** the agent's tool list never contains a `write` tool. The MCP client used by the agent loop is built with the filter `risk === 'read' || risk === 'propose'` (an allow-list, so an unknown or missing risk value is excluded). `propose` tools may insert `drafts` rows and set an earlier version's status to `superseded`; they never touch `access_requests`, `onboarding_tickets`, `approval_steps` or the workflow. The server also rejects `write` calls unless the call context carries a valid `ConfirmationEvent {draft_id, confirmed_by, at}` created by `POST /api/drafts/{id}/confirm`. There is no tool that resumes approval hooks (FR-024a).
 
 ## Schemas (abridged)
 
