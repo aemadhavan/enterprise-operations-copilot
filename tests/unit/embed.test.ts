@@ -13,7 +13,9 @@ import {
 const vec = (seed: number) => Array.from({ length: EMBEDDING_DIM }, (_, i) => (i === seed ? 1 : 0));
 
 function fakeBackend(model = "voyage-3.5") {
-  const embed = vi.fn(async (texts: string[], _type: InputType) => texts.map((_, i) => vec(i)));
+  const embed = vi.fn(async (texts: string[], inputType: InputType) =>
+    inputType ? texts.map((_, i) => vec(i)) : [],
+  );
   const backend: EmbeddingBackend = { model, embed };
   return { backend, embed };
 }
