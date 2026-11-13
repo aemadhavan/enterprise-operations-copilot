@@ -5,3 +5,17 @@ node_modules/
 __pycache__/
 evaluation/results/*.tmp
 .DS_Store
+# Next.js / tooling
+/coverage
+/out/
+/build
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+.env*
+!.env.example
+*.tmp
+Thumbs.db
