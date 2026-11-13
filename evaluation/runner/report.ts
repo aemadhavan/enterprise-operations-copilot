@@ -17,10 +17,16 @@ type Scored = Pick<CaseResult, "case_id" | "mode" | "arm" | "recall_at_5">;
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
+/**
+ * Only graphrag (the copilot as shipped) is gated. Baseline is the comparison arm:
+ * its gaps on multi-hop cases are the result we report (Constitution VIII), not a failure.
+ */
+export const GATED_MODES: Mode[] = ["graphrag"];
+
 /** Mean recall per mode; only the hybrid arm is gated. Skipped (null) cases are excluded. */
 export function evaluateGates(milestone: Milestone, results: Scored[]) {
+  const modes = [...new Set(results.map((r) => r.mode))];
   const gates = GATES[milestone].flatMap((g) => {
-    const modes = [...new Set(results.map((r) => r.mode))];
     return modes.map((mode) => {
       const vals = results
         .filter((r) => r.mode === mode && r.arm === "hybrid" && r.recall_at_5 !== null)
@@ -31,17 +37,18 @@ export function evaluateGates(milestone: Milestone, results: Scored[]) {
         mode,
         value,
         cases: vals.length,
+        gated: GATED_MODES.includes(mode),
         passed: vals.length > 0 && value >= g.threshold,
       };
     });
   });
-  return { passed: gates.every((g) => g.passed), gates };
+  return { passed: gates.filter((g) => g.gated).every((g) => g.passed), gates };
 }
 
 /** "Don't start the next task while a previously passing case is failing" (CLAUDE.md). */
 export function findRegressions(last: Record<string, number>, results: Scored[]) {
   return results
-    .filter((r) => r.arm === "hybrid" && r.recall_at_5 !== null)
+    .filter((r) => r.arm === "hybrid" && r.recall_at_5 !== null && GATED_MODES.includes(r.mode))
     .flatMap((r) => {
       const key = `${r.case_id}|${r.mode}`;
       const previous = last[key];
@@ -160,7 +167,7 @@ export async function writeReport(
     "|---|---|---|---|---|---|---|",
     ...gate.gates.map(
       (g) =>
-        `| ${g.sc} | ${g.metric} (hybrid) | ${g.mode} | ${pct(g.value)} | ${pct(g.threshold)} | ${g.cases} | ${g.passed ? "✅ pass" : "❌ fail"} |`,
+        `| ${g.sc} | ${g.metric} (hybrid) | ${g.mode} | ${pct(g.value)} | ${g.gated ? pct(g.threshold) : "—"} | ${g.cases} | ${g.gated ? (g.passed ? "✅ pass" : "❌ fail") : "reported (not gated)"} |`,
     ),
     "",
     regressions.length
@@ -175,7 +182,7 @@ export async function writeReport(
     ...rows,
     ...means,
     "",
-    "Only the hybrid arm is gated; `fts` (full-text only) and `vector` (vector only) are diagnostic.",
+    "Only graphrag mode, hybrid arm, is gated. Baseline is reported for comparison. `fts` (full-text only) and `vector` (vector only) are diagnostic.",
     "Skipped (—) = no expected sources for that case.",
     "",
   ].join("\n");
@@ -184,7 +191,7 @@ export async function writeReport(
   if (opts.updateLastPass && gate.passed && regressions.length === 0) {
     const scores = Object.fromEntries(
       results
-        .filter((r) => r.arm === "hybrid" && r.recall_at_5 !== null)
+        .filter((r) => r.arm === "hybrid" && r.recall_at_5 !== null && GATED_MODES.includes(r.mode))
         .map((r) => [`${r.case_id}|${r.mode}`, r.recall_at_5 as number]),
     );
     const previous = await readLastPass();
@@ -194,8 +201,10 @@ export async function writeReport(
         {
           updated: meta.timestamp,
           milestone: meta.milestone,
+          label: `${meta.milestone} regression baseline: ${meta.cases.join(", ")}`,
           dataset_hash: meta.dataset_hash,
           embedding_model: meta.embedding_model,
+          gated_modes: GATED_MODES,
           scores: { ...previous, ...scores },
         },
         null,

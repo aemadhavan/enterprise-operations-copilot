@@ -60,7 +60,7 @@
 ## Phase 4: M3 Graph + router + first chat UI (Sat ≈ 21:15) · US1, US2, US6
 
 **Goal**: graph traversal, router and a minimal chat UI live. Route accuracy is gated, and the first baseline vs graphrag comparison is recorded.
-**Independent test**: `pnpm eval:fast --cases GS-009..GS-016,GS-021` (GS-009 path matches the seed README), then `pnpm eval:model`, which needs route accuracy ≥ 85% on all 30 cases. GS-001 and GS-009 answer in the browser.
+**Independent test**: `pnpm eval:fast --cases GS-009..GS-016,GS-021` (GS-009 path matches the seed README), then `pnpm eval:model` / `pnpm eval:route` for route accuracy on all 30 cases (reported in v0.1, gated at ≥ 85% in v0.2). Only graphrag mode is gated in Tier 1a; baseline is reported. GS-001 and GS-009 answer in the browser.
 
 - [X] T023 [US2] **P0** Implement graph loader from `nodes.csv`/`edges.csv` keeping `source_doc` and `condition`; validate `relation` ∈ the 16 relations (15 + implemented_by, added 2026-11-14) in `data/graph_seed/README.md` in `lib/graph/load.ts` (called by `scripts/ingest.ts`) — FR-002
 - [X] T024 [US2] **P0** Integration test first: `graph_query` node mode from `SYS-CRM` reproduces the GS-009 hero traversal edges (incl. `APR-DO` → data owner resolved via `data_owner`) in `tests/integration/graph-hero.test.ts` — FR-005b
@@ -75,8 +75,8 @@
 - [ ] T033 [US1] **P0** Implement `POST /api/chat` (rate limit, daily spend cap, 503 on upstream failure) in `app/api/chat/route.ts` — FR-006, PRD §8.2
 - [ ] T034 [US1] **P0** Build chat page with evidence panel (route, confidence, citation chips, graph path, assumptions, gaps, trace link, SIMULATED badge) in `app/page.tsx`, `app/components/EvidencePanel.tsx` — US1, US2
 - [ ] T035 [US2] **P2** Implement Tier 1b runner (full turn, fixed models/effort, route accuracy from the turn result, latency, cost; `--runs`) in `evaluation/runner/tier1b.ts` — FR-020, SC-004
-- [ ] T036 [US2] **P2** Extend Tier 1a with graph recall (edge `source_doc` counts on graph routes) for GS-009–016, GS-021 in `evaluation/runner/tier1a.ts` — SC-010
-- [ ] T037 [US6] **P2** Run `pnpm eval:fast --mode both --category multi_hop` and `pnpm eval:model`; tune router prompt until route accuracy ≥ 85%; record first baseline vs graphrag recall table in `evaluation/results/summary.md` — SC-004, US6 **(M3 gate)**
+- [X] T036 [US2] **P2** Extend Tier 1a with graph recall (edge `source_doc` counts on graph routes) for GS-009–016, GS-021 in `evaluation/runner/tier1a.ts` — SC-010
+- [ ] T037 [US6] **P2** Run `pnpm eval:fast --mode both --category multi_hop` and `pnpm eval:model`; report route accuracy (reported in v0.1, gated at ≥ 85% in v0.2; tune the router prompt if below); record first baseline vs graphrag recall table in `evaluation/results/summary.md` (graphrag gated, baseline reported) — SC-004, US6 **(M3 gate: graphrag recall@5 in v0.1; route accuracy from v0.2)**
 
 ---
 

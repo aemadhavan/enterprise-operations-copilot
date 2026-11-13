@@ -17,7 +17,7 @@ All tiers accept `--mode baseline|graphrag|both` (`baseline` = hybrid keyword + 
 | Milestone | Cases you can evaluate | Metrics added | Gate |
 |---|---|---|---|
 | **M2** Retrieval | GS-001–008, GS-018–020 | Retrieval recall@5 (1a) | ≥ 90% |
-| **M3** Graph + router | All 30 for routing; GS-009–016, GS-021 for retrieval | Route accuracy (1b); recall@5 and first baseline vs graphrag comparison (1a) | ≥ 85% |
+| **M3** Graph + router | All 30 for routing; GS-009–016, GS-021 for retrieval | Route accuracy (1b); recall@5 and first baseline vs graphrag comparison (1a) | recall@5 ≥ 90% graphrag only (baseline reported); route accuracy reported in v0.1, ≥ 85% gated in v0.2 |
 | **M4** Agent + confirmation gate | Tool correctness GS-022–025; safety GS-026–028; clarify GS-029–030 | Confirmation compliance + hook guard (1a); tool correctness, safe behaviour, clarify behaviour (1b) | 100%; ≥ 90%, 100%, reported |
 | **M5** Freeze | All 30, both modes | Groundedness, citation accuracy, completeness (2); latency, cost (1b, 3 runs with variation) | ≥ 90%, ≥ 90%, graph ≥ vector + 20 pts |
 

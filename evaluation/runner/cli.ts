@@ -174,7 +174,9 @@ async function main() {
 
     for (const g of gate.gates) {
       console.log(
-        `${g.sc} ${g.metric} [${g.mode}] ${(g.value * 100).toFixed(1)}% (threshold ${g.threshold * 100}%, ${g.cases} cases) ${g.passed ? "PASS" : "FAIL"}`,
+        g.gated
+          ? `${g.sc} ${g.metric} [${g.mode}] ${(g.value * 100).toFixed(1)}% (threshold ${g.threshold * 100}%, ${g.cases} cases) ${g.passed ? "PASS" : "FAIL"}`
+          : `${g.sc} ${g.metric} [${g.mode}] ${(g.value * 100).toFixed(1)}% (${g.cases} cases) reported, not gated`,
       );
     }
     for (const r of regressions) console.log(`REGRESSION ${r.key}: ${r.previous} → ${r.current}`);

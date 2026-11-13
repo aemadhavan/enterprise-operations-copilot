@@ -1,28 +1,31 @@
 {
-  "updated": "2026-11-13T23:23:23.497Z",
-  "milestone": "M2",
+  "updated": "2026-11-13T23:37:36.608Z",
+  "milestone": "M3",
+  "label": "M3 regression baseline: GS-001, GS-002, GS-003, GS-004, GS-005, GS-006, GS-007, GS-008, GS-009, GS-010, GS-011, GS-012, GS-013, GS-014, GS-015, GS-016, GS-018, GS-019, GS-020, GS-021",
   "dataset_hash": "72a625175df393ffbf6d407846823a943ffbea5a77dbc1a41ed9628a89e5c4b3",
   "embedding_model": "voyage-3.5",
+  "gated_modes": [
+    "graphrag"
+  ],
   "scores": {
-    "GS-001|baseline": 1,
     "GS-001|graphrag": 1,
-    "GS-002|baseline": 1,
     "GS-002|graphrag": 1,
-    "GS-003|baseline": 1,
     "GS-003|graphrag": 1,
-    "GS-004|baseline": 1,
     "GS-004|graphrag": 1,
-    "GS-005|baseline": 1,
     "GS-005|graphrag": 1,
-    "GS-006|baseline": 1,
     "GS-006|graphrag": 1,
-    "GS-007|baseline": 1,
     "GS-007|graphrag": 1,
-    "GS-008|baseline": 1,
     "GS-008|graphrag": 1,
-    "GS-018|baseline": 1,
+    "GS-009|graphrag": 1,
+    "GS-010|graphrag": 1,
+    "GS-011|graphrag": 1,
+    "GS-012|graphrag": 1,
+    "GS-013|graphrag": 1,
+    "GS-014|graphrag": 1,
+    "GS-015|graphrag": 1,
+    "GS-016|graphrag": 1,
     "GS-018|graphrag": 1,
-    "GS-020|baseline": 1,
-    "GS-020|graphrag": 1
+    "GS-020|graphrag": 1,
+    "GS-021|graphrag": 1
   }
 }
