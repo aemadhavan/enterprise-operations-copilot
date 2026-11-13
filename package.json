@@ -18,7 +18,8 @@
     "eval:model": "tsx evaluation/runner/cli.ts --tier 1b",
     "eval:full": "tsx evaluation/runner/cli.ts --tier 2",
     "validate": "python scripts/validate_seed.py",
-    "smoke:models": "tsx scripts/smoke-models.ts"
+    "smoke:models": "tsx scripts/smoke-models.ts",
+    "eval:route": "tsx evaluation/runner/route-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "1.1.2",
