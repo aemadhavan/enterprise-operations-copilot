@@ -38,7 +38,7 @@
 
 ### Minimal ingestion and hybrid search
 - [X] T010 [US1] **P0** Implement document ingest: parse front matter with gray-matter, chunk by `##`/`###` headings keeping `section` as a heading path (e.g. `3. Requirements > 3.4`), upsert `documents` + `chunks` with content_hash in `lib/retrieval/ingest.ts` — FR-001
-- [ ] T011 [P] [US1] **P0** Implement embeddings: Voyage `voyage-3.5` 1024-d (`input_type` document|query), Titan V2 1024-d when `EMBEDDING_PROVIDER=bedrock`; fail ingest if stored `embedding_model` ≠ configured; on-disk query cache in `evaluation/cache/` in `lib/retrieval/embed.ts` — ADR-007, R-08
+- [X] T011 [P] [US1] **P0** Implement embeddings: Voyage `voyage-3.5` 1024-d (`input_type` document|query), Titan V2 1024-d when `EMBEDDING_PROVIDER=bedrock`; fail ingest if stored `embedding_model` ≠ configured; on-disk query cache in `evaluation/cache/` in `lib/retrieval/embed.ts` — ADR-007, R-08
 - [ ] T012 [US1] **P0** Wire `scripts/ingest.ts` (documents → chunks → embeddings; idempotent re-run) — FR-001
 - [ ] T013 [US1] **P0** Implement hybrid search: `websearch_to_tsquery('english')` + `ts_rank_cd` top 20, pgvector cosine top 20, RRF k=60, return ranked chunks with doc metadata in `lib/retrieval/hybrid.ts` — FR-004, R-07
 - [ ] T014 [P] [US1] **P0** Unit-test the recall@5 metric: top 5 **distinct** doc IDs from the ranked list, plus every returned edge `source_doc` on graph routes, score = found ÷ min(5, |expected|), empty `expected_sources` skipped in `evaluation/runner/metrics/recall.ts` and `tests/unit/recall.test.ts` — SC-010, clarification 1

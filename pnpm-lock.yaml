@@ -14,6 +14,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: 1.8.0
         version: 1.8.0(zod@4.6.7)
+      '@aws-sdk/client-bedrock-runtime':
+        specifier: 3.1168.0
+        version: 3.1168.0
       '@modelcontextprotocol/sdk':
         specifier: 1.32.2
         version: 1.32.2(supports-color@7.2.0)(zod@4.6.7)

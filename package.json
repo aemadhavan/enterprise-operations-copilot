@@ -23,6 +23,7 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "1.1.2",
     "@anthropic-ai/sdk": "1.8.0",
+    "@aws-sdk/client-bedrock-runtime": "3.1168.0",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@neondatabase/serverless": "1.2.0",
     "dotenv": "18.0.10",
