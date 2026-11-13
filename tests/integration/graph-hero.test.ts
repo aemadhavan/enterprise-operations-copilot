@@ -53,6 +53,42 @@ describe.skipIf(!enabled)("graph_query hero traversal, GS-009 (FR-005b)", () => 
     expect([...got].some((e) => e.startsWith("APR-DO -approved_by->"))).toBe(false);
   });
 
+  it("label mode: Restricted systems and their data owners (GS-010)", async () => {
+    const { nodes, edges } = await graphQuery({
+      mode: "label",
+      label: "System",
+      classification: "Restricted",
+    });
+    const systems = nodes.filter((n) => n.label === "System").map((n) => n.id);
+    expect(systems.sort()).toEqual(["SYS-BILL", "SYS-CRM", "SYS-DWH", "SYS-HR", "SYS-IAM"]);
+    const owners = edges.filter((e) => e.relation === "data_owner");
+    expect(owners).toHaveLength(5);
+    expect(owners.every((e) => e.source_doc === "REF-003")).toBe(true);
+  });
+
+  it("label mode with a condition filter keeps only matching edges", async () => {
+    const { edges } = await graphQuery({
+      mode: "label",
+      label: "Role",
+      condition: "requester=Contractor",
+    });
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges.every((e) => e.condition?.includes("requester=Contractor"))).toBe(true);
+  });
+
+  it("relation mode: every led_to edge with its incident source_doc (GS-013)", async () => {
+    const { edges } = await graphQuery({ mode: "relation", relation: "led_to" });
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges.every((e) => e.relation === "led_to")).toBe(true);
+    expect(new Set(edges.map((e) => e.source))).toEqual(new Set(["INC-2026-031", "INC-2026-044"]));
+  });
+
+  it("rejects an invalid input (Zod re-validation)", async () => {
+    await expect(
+      graphQuery({ mode: "node", start_id: "SYS-CRM", max_hops: 9 } as never),
+    ).rejects.toThrow();
+  });
+
   it("does not walk backwards into the Employee chain from the contractor seed", async () => {
     const { edges } = await graphQuery({ mode: "node", start_id: "ROLE-CONTRACTOR", max_hops: 2 });
     expect(edges.some((e) => e.source === "ROLE-EMP")).toBe(false);
