@@ -4,6 +4,7 @@ import type { GraphNode } from "@/lib/graph/load";
 import { graphQuery } from "@/lib/graph/query";
 import { resolveEntities } from "@/lib/graph/resolve";
 import { distinctDocIds, hybridSearch, type SearchArms } from "@/lib/retrieval/hybrid";
+import { sourceCoverage } from "./metrics/coverage";
 import { reciprocalRank } from "./metrics/mrr";
 import { recallAt5 } from "./metrics/recall";
 import type { CaseResult, GoldenCase, Mode } from "./types";
@@ -63,6 +64,7 @@ export async function runRetrieval(
           arm,
           recall_at_5: recallAt5(c.expected_sources, ranked, edges),
           reciprocal_rank: reciprocalRank(c.expected_sources, ranked),
+          source_coverage: sourceCoverage(c.expected_sources, ranked, edges),
           retrieved_docs: distinctDocIds(ranked).slice(0, 5),
           expected_sources: c.expected_sources,
           latency_ms,

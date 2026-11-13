@@ -20,6 +20,7 @@ export interface CaseResult {
   arm: SearchArms;
   recall_at_5: number | null; // null = skipped (no expected sources)
   reciprocal_rank?: number | null; // MRR input, reported only
+  source_coverage?: number | null; // found ÷ expected, uncapped, reported only
   retrieved_docs?: string[];
   expected_sources?: string[];
   latency_ms?: number;

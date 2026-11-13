@@ -104,8 +104,9 @@ export async function writeReport(
     v === null || v === undefined || Number.isNaN(v) ? "—" : v.toFixed(2);
   const header =
     `| Case | Mode | ${arms.map((a) => `recall@5 ${a}`).join(" | ")} | ` +
+    `${arms.map((a) => `coverage ${a}`).join(" | ")} | ` +
     `${arms.map((a) => `RR ${a}`).join(" | ")} | Expected | Top-5 docs (hybrid) |`;
-  const sep = `|${"---|".repeat(2 * arms.length + 4)}`;
+  const sep = `|${"---|".repeat(3 * arms.length + 4)}`;
   const rows = meta.cases.flatMap((id) =>
     meta.modes.map((mode) => {
       const by = (arm: string) =>
@@ -113,12 +114,14 @@ export async function writeReport(
       const h = by("hybrid") ?? by(arms[0]);
       return (
         `| ${id} | ${mode} | ${arms.map((a) => pct(by(a)?.recall_at_5)).join(" | ")} | ` +
+        `${arms.map((a) => pct(by(a)?.source_coverage)).join(" | ")} | ` +
         `${arms.map((a) => rr(by(a)?.reciprocal_rank)).join(" | ")} | ` +
         `${(h?.expected_sources ?? []).join(", ")} | ${(h?.retrieved_docs ?? []).join(", ")} |`
       );
     }),
   );
-  const meanOf = (mode: string, arm: string, key: "recall_at_5" | "reciprocal_rank") =>
+  type MetricKey = "recall_at_5" | "reciprocal_rank" | "source_coverage";
+  const meanOf = (mode: string, arm: string, key: MetricKey) =>
     mean(
       results
         .filter((r) => r.mode === mode && r.arm === arm && r[key] !== null && r[key] !== undefined)
@@ -127,18 +130,22 @@ export async function writeReport(
   const means = meta.modes.map(
     (mode) =>
       `| **mean** | ${mode} | ${arms.map((a) => pct(meanOf(mode, a, "recall_at_5"))).join(" | ")} | ` +
+      `${arms.map((a) => pct(meanOf(mode, a, "source_coverage"))).join(" | ")} | ` +
       `${arms.map((a) => rr(meanOf(mode, a, "reciprocal_rank"))).join(" | ")} | | |`,
   );
   const mrrTable = [
-    "## MRR (reported, not gated)",
+    "## Reported metrics (not gated)",
     "",
-    `| Mode | ${arms.map((a) => `MRR ${a}`).join(" | ")} |`,
-    `|${"---|".repeat(arms.length + 1)}`,
+    `| Mode | ${arms.map((a) => `recall@5 ${a}`).join(" | ")} | ${arms.map((a) => `coverage ${a}`).join(" | ")} | ${arms.map((a) => `MRR ${a}`).join(" | ")} |`,
+    `|${"---|".repeat(3 * arms.length + 1)}`,
     ...meta.modes.map(
       (mode) =>
-        `| ${mode} | ${arms.map((a) => rr(meanOf(mode, a, "reciprocal_rank"))).join(" | ")} |`,
+        `| ${mode} | ${arms.map((a) => pct(meanOf(mode, a, "recall_at_5"))).join(" | ")} | ` +
+        `${arms.map((a) => pct(meanOf(mode, a, "source_coverage"))).join(" | ")} | ` +
+        `${arms.map((a) => rr(meanOf(mode, a, "reciprocal_rank"))).join(" | ")} |`,
     ),
     "",
+    "recall@5 (gated) = found ÷ min(5, expected). Coverage = found ÷ expected, uncapped, same retrieved set.",
     "MRR = mean of 1 / rank of the first expected source among distinct retrieved doc IDs.",
     "",
   ];
