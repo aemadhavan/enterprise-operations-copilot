@@ -122,6 +122,8 @@ export function resolveApprovals(
     classification,
     chain,
     controls: toRequirements(dataClassEdges),
-    prerequisites: toRequirements(requirementEdges.filter((e) => e.source === roleId)),
+    // Role-level requirements: the requester role (POL-022) and, for admin, ROLE-PRIV-ADMIN
+    // (POL-041: CTL-01 MFA, CTL-06 session logging), whatever the system's classification.
+    prerequisites: toRequirements(requirementEdges),
   };
 }

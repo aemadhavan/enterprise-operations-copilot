@@ -123,6 +123,17 @@ describe("REF-005 approval resolver (FR-009)", () => {
     expect(ids(r.prerequisites)).toEqual(["CTL-03", "CTL-04"]);
   });
 
+  it("admin on a non-Restricted system keeps the POL-041 privileged-access controls", () => {
+    const r = resolveApprovals(graph, {
+      system_id: "SYS-WIKI",
+      requester_type: "Employee",
+      access_level: "admin",
+    });
+    expect(r.classification).toBe("Internal");
+    expect(ids(r.prerequisites)).toEqual(expect.arrayContaining(["CTL-01", "CTL-06"]));
+    expect(r.prerequisites.find((p) => p.id === "CTL-06")?.source_doc).toBe("POL-041");
+  });
+
   it("throws for an unknown system", () => {
     expect(() =>
       resolveApprovals(graph, {
