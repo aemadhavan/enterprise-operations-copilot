@@ -52,7 +52,7 @@ All unknowns are resolved in [research.md](./research.md). None remain marked NE
 | ADR | Decision | Rejected alternative, and why |
 |---|---|---|
 | 001 App | Next.js 16 App Router on Vercel, in TypeScript. Originally written as 15; no 15-specific dependency, so T001 uses the current stable (16.4.6 on 2026-11-14) | Separate API + SPA: two deploys, no benefit at this size |
-| 002 Data | Neon Postgres: pgvector + `tsvector` for hybrid retrieval; graph in `nodes`/`edges`, traversed with recursive CTEs | Neo4j or Neptune: 66 nodes don't justify a second datastore |
+| 002 Data | Neon Postgres: pgvector + `tsvector` for hybrid retrieval (full-text as an OR query over meaningful words, ranked with `ts_rank_cd` (length-normalised), fused with vectors by RRF k = 60; R-07); graph in `nodes`/`edges`, traversed with recursive CTEs | Neo4j or Neptune: 66 nodes don't justify a second datastore |
 | 003 Agent runtime | Hand-written tool-use loop on `@anthropic-ai/sdk`; Bedrock via `AnthropicBedrockMantle`; `MODEL_PROVIDER` selects (FR-025) | Claude Agent SDK, which needs a persistent sandbox (bad fit for Vercel); the SDK Tool Runner, because the gate is clearer in our own loop |
 | 004 Tools | In-process MCP server (`@modelcontextprotocol/sdk`, in-memory transport); each tool declares `risk` (`read` | `propose` | `write`) and `allowed_roles`; the agent client allow-lists `read` + `propose` | stdio child process, which doesn't work on serverless |
 | 005 Graph tool | One `graph_query` tool with three seed modes (node + hops, label/classification/condition, relation) | Free-form SQL or Cypher from the model, which is unsafe and untestable |

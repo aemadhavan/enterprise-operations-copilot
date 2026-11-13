@@ -110,7 +110,7 @@ export function createEmbedder(
 ): Embedder {
   const backend = opts.backend ?? backendFromConfig();
   const cacheDir = opts.cacheDir === undefined ? "evaluation/cache/embeddings" : opts.cacheDir;
-  const batchSize = opts.batchSize ?? 64;
+  const batchSize = opts.batchSize ?? 16;
 
   const cachePath = (dir: string, text: string) => {
     const key = createHash("sha256").update(`${backend.model}|query|${text}`).digest("hex");

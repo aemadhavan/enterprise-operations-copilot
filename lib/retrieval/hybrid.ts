@@ -45,26 +45,41 @@ export interface SearchResult {
 }
 
 /**
- * Hybrid retrieval (FR-004): Postgres full-text (`websearch_to_tsquery('english')`,
- * `ts_rank_cd`, top 20) + pgvector cosine (top 20), fused with RRF (k = 60).
+ * Hybrid retrieval (FR-004, R-07): Postgres full-text as an OR query over the meaningful
+ * words (`plainto_tsquery` strips stop words and stems; `&` becomes `|`), ranked with
+ * `ts_rank_cd(tsv, q, 2)` (length-normalised), top 20 + pgvector cosine, top 20, fused with RRF (k = 60).
+ * `arms` runs one arm alone ("fts" | "vector") for evaluation; the default is both.
  * Returns up to `k` chunks, best first, with document metadata.
  */
+export type SearchArms = "hybrid" | "fts" | "vector";
+
+async function ftsIds(query: string): Promise<string[]> {
+  const rows = await sql`
+    SELECT id::text FROM chunks,
+      to_tsquery('english', replace(plainto_tsquery('english', ${query})::text, ' & ', ' | ')) q
+    WHERE tsv @@ q ORDER BY ts_rank_cd(tsv, q, 2) DESC, id LIMIT ${ARM_LIMIT}`;
+  return (rows as { id: string }[]).map((r) => r.id);
+}
+
+async function vectorIds(query: string, embedder: Embedder): Promise<string[]> {
+  const vector = toVectorLiteral(await embedder.embedQuery(query));
+  const rows = await sql`
+    SELECT id::text FROM chunks WHERE embedding IS NOT NULL
+    ORDER BY embedding <=> ${vector}::vector, id LIMIT ${ARM_LIMIT}`;
+  return (rows as { id: string }[]).map((r) => r.id);
+}
+
 export async function hybridSearch(
   query: string,
-  opts: { k?: number; embedder?: Embedder } = {},
+  opts: { k?: number; embedder?: Embedder; arms?: SearchArms } = {},
 ): Promise<SearchResult[]> {
   const k = opts.k ?? ARM_LIMIT;
-  const embedder = opts.embedder ?? createEmbedder();
-  const vector = toVectorLiteral(await embedder.embedQuery(query));
-
-  const [ftsRows, vecRows] = await Promise.all([
-    sql`SELECT id::text FROM chunks, websearch_to_tsquery('english', ${query}) q
-        WHERE tsv @@ q ORDER BY ts_rank_cd(tsv, q) DESC, id LIMIT ${ARM_LIMIT}`,
-    sql`SELECT id::text FROM chunks WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> ${vector}::vector, id LIMIT ${ARM_LIMIT}`,
+  const arms = opts.arms ?? "hybrid";
+  const [fts, vec] = await Promise.all([
+    arms === "vector" ? Promise.resolve([]) : ftsIds(query),
+    arms === "fts" ? Promise.resolve([]) : vectorIds(query, opts.embedder ?? createEmbedder()),
   ]);
-  const ids = (rows: unknown[]) => (rows as { id: string }[]).map((r) => r.id);
-  const fused = reciprocalRankFusion([ids(ftsRows), ids(vecRows)]).slice(0, k);
+  const fused = reciprocalRankFusion([fts, vec]).slice(0, k);
   if (!fused.length) return [];
 
   const rows = (await sql`

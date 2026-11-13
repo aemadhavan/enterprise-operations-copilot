@@ -70,8 +70,7 @@ describe("chunkDocument (R-07)", () => {
     expect(chunks.every((c) => !c.text.includes("SYNTHETIC"))).toBe(true);
   });
 
-  it("keeps text under the # title (e.g. a catalogue table) as a section named after the title", () => {
-    const table = "| ID | Control |\n|---|---|\n| CTL-01 | MFA |";
+  it("keeps text under the # title as a section and splits each table row into its own chunk", () => {
     const raw = `---
 doc_id: REF-004
 title: Control Catalogue
@@ -82,10 +81,36 @@ doc_type: reference
 
 # Control Catalogue
 
-${table}
+Controls referenced by policy.
+
+| ID | Control |
+|---|---|
+| CTL-01 | MFA |
+| **CTL-08** | Bulk export approval |
 `;
-    const c = chunkDocument(parseDocument(raw));
-    expect(c).toEqual([{ doc_id: "REF-004", section: "Control Catalogue", text: table }]);
+    const header = "| ID | Control |\n|---|---|";
+    expect(chunkDocument(parseDocument(raw))).toEqual([
+      { doc_id: "REF-004", section: "Control Catalogue", text: "Controls referenced by policy." },
+      {
+        doc_id: "REF-004",
+        section: "Control Catalogue > CTL-01",
+        text: `${header}\n| CTL-01 | MFA |`,
+      },
+      {
+        doc_id: "REF-004",
+        section: "Control Catalogue > CTL-08",
+        text: `${header}\n| **CTL-08** | Bulk export approval |`,
+      },
+    ]);
+  });
+
+  it("drops an empty section chunk when the section is only a table, and dedupes row keys", () => {
+    const raw =
+      "---\ndoc_id: X-1\ntitle: X\n---\n## Matrix\n| Role | Step |\n|---|---|\n| Sponsor | 1 |\n| Sponsor | 2 |\n";
+    expect(chunkDocument(parseDocument(raw)).map((c) => c.section)).toEqual([
+      "Matrix > Sponsor",
+      "Matrix > Sponsor (2)",
+    ]);
   });
 
   it("is deterministic", () => {

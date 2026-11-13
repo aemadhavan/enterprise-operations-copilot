@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import matter from "gray-matter";
 
+/** Bump when chunking changes: it is part of content_hash, so ingest re-chunks every doc. */
+export const CHUNKER_VERSION = "chunker-v2-clauses-table-rows";
+
 export interface ParsedDocument {
   doc_id: string;
   title: string;
@@ -38,7 +41,9 @@ export function parseDocument(raw: string): ParsedDocument {
     owner: str(data.owner),
     source_system: str(data.source_system),
     effective_date: str(data.effective_date),
-    content_hash: createHash("sha256").update(raw.replace(/\r\n/g, "\n")).digest("hex"),
+    content_hash: createHash("sha256")
+      .update(`${CHUNKER_VERSION}\n${raw.replace(/\r\n/g, "\n")}`)
+      .digest("hex"),
     body: content.replace(/\r\n/g, "\n"),
   };
 }
@@ -99,5 +104,56 @@ export function chunkDocument(doc: ParsedDocument): Chunk[] {
     }
   }
   flush();
-  return chunks;
+  return splitTables(chunks);
+}
+
+const SEPARATOR_ROW = /^\|(\s*:?-{3,}:?\s*\|)+\s*$/;
+
+const firstCell = (row: string) => row.replace(/^\|/, "").split("|")[0].replace(/\*\*/g, "").trim();
+
+/**
+ * Split Markdown tables out of section chunks: each body row becomes its own chunk with
+ * the header row kept for context and section `<path> > <first cell>` (e.g.
+ * "Control Catalogue > CTL-08"). Text around the table stays in the section chunk.
+ * Duplicate section names get a " (2)", " (3)" suffix so (doc_id, section) stays unique.
+ */
+export function splitTables(chunks: Chunk[]): Chunk[] {
+  const out: Chunk[] = [];
+  const seen = new Map<string, number>();
+  const push = (c: Chunk) => {
+    const n = (seen.get(c.section) ?? 0) + 1;
+    seen.set(c.section, n);
+    out.push(n === 1 ? c : { ...c, section: `${c.section} (${n})` });
+  };
+
+  for (const chunk of chunks) {
+    const lines = chunk.text.split("\n");
+    const rest: string[] = [];
+    const rows: Chunk[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const isTable =
+        lines[i].trimStart().startsWith("|") && SEPARATOR_ROW.test((lines[i + 1] ?? "").trim());
+      if (!isTable) {
+        rest.push(lines[i]);
+        continue;
+      }
+      const header = lines[i].trim();
+      const sep = lines[i + 1].trim();
+      i += 2;
+      for (; i < lines.length && lines[i].trimStart().startsWith("|"); i++) {
+        const row = lines[i].trim();
+        const key = firstCell(row) || "row";
+        rows.push({
+          doc_id: chunk.doc_id,
+          section: `${chunk.section} > ${key}`,
+          text: `${header}\n${sep}\n${row}`,
+        });
+      }
+      i--; // the for-loop increment moves past the last table row
+    }
+    const text = rest.join("\n").trim();
+    if (text) push({ ...chunk, text });
+    rows.forEach(push);
+  }
+  return out;
 }

@@ -18,7 +18,7 @@ Postgres (Neon) with the `vector` extension. Every table includes `created_at ti
 |---|---|---|
 | id | bigserial PK | |
 | doc_id | text FK → documents | |
-| section | text | Heading path, e.g. `3. Requirements > 3.4` |
+| section | text | Heading path, e.g. `3. Requirements > 3.4`. Clause-level: each numbered clause bullet (`- **3.4** ...`) is its own chunk; each Markdown table row is its own chunk with section `<heading path> > <first cell>` (e.g. `Control Catalogue > CTL-08`); text under the `#` title before the first `##` uses the title as its section (R-07) |
 | text | text | |
 | tsv | tsvector | `to_tsvector('english', section || ' ' || text)`, GIN index |
 | embedding | vector(1024) | HNSW cosine index |
