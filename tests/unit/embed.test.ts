@@ -8,6 +8,7 @@ import {
   EMBEDDING_DIM,
   type EmbeddingBackend,
   type InputType,
+  withRateLimitRetry,
 } from "@/lib/retrieval/embed";
 
 const vec = (seed: number) => Array.from({ length: EMBEDDING_DIM }, (_, i) => (i === seed ? 1 : 0));
@@ -57,6 +58,29 @@ describe("embedder (ADR-007, R-08)", () => {
     await expect(createEmbedder({ backend, cacheDir: null }).embedDocuments(["a"])).rejects.toThrow(
       /1024/,
     );
+  });
+
+  it("retries 429s with growing backoff and rethrows other errors", async () => {
+    const sleeps: number[] = [];
+    const sleep = async (ms: number) => void sleeps.push(ms);
+    let calls = 0;
+    const ok = await withRateLimitRetry(
+      async () => {
+        if (++calls < 3) throw Object.assign(new Error("rate"), { statusCode: 429 });
+        return "ok";
+      },
+      { baseMs: 10, sleep },
+    );
+    expect(ok).toBe("ok");
+    expect(sleeps).toEqual([10, 20]);
+    await expect(
+      withRateLimitRetry(
+        async () => {
+          throw Object.assign(new Error("bad"), { statusCode: 400 });
+        },
+        { sleep },
+      ),
+    ).rejects.toThrow("bad");
   });
 
   it("fails when the index was built with a different embedding model", () => {

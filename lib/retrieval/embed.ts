@@ -15,18 +15,42 @@ export interface EmbeddingBackend {
   embed(texts: string[], inputType: InputType): Promise<number[][]>;
 }
 
+/**
+ * Retry on HTTP 429 with backoff. Free-tier Voyage accounts are limited to 3 requests/min,
+ * so waits start at 21 s. Other errors are rethrown immediately.
+ */
+export async function withRateLimitRetry<T>(
+  fn: () => Promise<T>,
+  opts: { retries?: number; baseMs?: number; sleep?: (ms: number) => Promise<void> } = {},
+): Promise<T> {
+  const retries = opts.retries ?? 4;
+  const baseMs = opts.baseMs ?? 21_000;
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      if (status !== 429 || attempt >= retries) throw err;
+      await sleep(baseMs * (attempt + 1));
+    }
+  }
+}
+
 /** Voyage (default, ADR-007). */
 export function voyageBackend(config: Config): EmbeddingBackend {
   const client = new VoyageAIClient({ apiKey: requireSetting(config, "VOYAGE_API_KEY") });
   return {
     model: config.EMBEDDING_MODEL,
     async embed(texts, inputType) {
-      const res = await client.embed({
-        input: texts,
-        model: config.EMBEDDING_MODEL,
-        inputType,
-        outputDimension: EMBEDDING_DIM,
-      });
+      const res = await withRateLimitRetry(() =>
+        client.embed({
+          input: texts,
+          model: config.EMBEDDING_MODEL,
+          inputType,
+          outputDimension: EMBEDDING_DIM,
+        }),
+      );
       const data = [...(res.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       return data.map((d) => d.embedding ?? []);
     },
