@@ -58,4 +58,11 @@ PoC, not a platform: no auth, no multi-tenancy, no real connectors. Feature free
 - `python scripts/validate_seed.py` (Windows) / `python3 scripts/validate_seed.py` (macOS/Linux): validate the fixtures (must pass)
 - After a fresh clone, create `.specify/feature.json` containing `{"feature_directory":"specs/001-access-impact-copilot"}` (it's gitignored by Spec Kit; the speckit scripts fail without it).
 - Local secrets live in `.env.local` (copied from `.env.example`). Next.js loads it automatically; scripts (ingest, migrate, eval) load it explicitly with `dotenv` (`path: '.env.local'`).
-- Add the build, dev, ingest and eval commands here once scaffolded.
+- Package manager is pnpm (Node ≥ 22). `pnpm install` after a fresh clone.
+- `pnpm dev` / `pnpm build` / `pnpm start`: Next.js app
+- `pnpm lint`, `pnpm typecheck`, `pnpm format`: ESLint, `tsc --noEmit`, Prettier
+- `pnpm test` (all), `pnpm test:unit`, `pnpm test:integration`: Vitest projects (integration needs `DATABASE_URL`)
+- `pnpm validate`: wraps the fixture validator above
+- `pnpm db:migrate`: apply `lib/db/migrations/*.sql` in order (T007)
+- `pnpm ingest`: documents → chunks + embeddings; graph seed → nodes/edges (T012, T023)
+- `pnpm eval:fast` (Tier 1a, no model calls), `pnpm eval:model` (Tier 1b, v0.2), `pnpm eval:full` (Tier 2, v0.2). Filters: `--cases GS-001..GS-008 --category multi_hop --mode baseline|graphrag|both` (T015)

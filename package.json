@@ -6,7 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "ingest": "tsx scripts/ingest.ts",
+    "eval:fast": "tsx evaluation/runner/cli.ts --tier 1a",
+    "eval:model": "tsx evaluation/runner/cli.ts --tier 1b",
+    "eval:full": "tsx evaluation/runner/cli.ts --tier 2",
+    "validate": "python scripts/validate_seed.py"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "1.1.2",
