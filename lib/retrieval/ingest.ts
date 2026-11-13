@@ -85,3 +85,8 @@ export async function upsertDocuments(pool: Pool, loaded: LoadedDocument[]): Pro
     chunks: loaded.reduce((n, l) => n + l.chunks.length, 0),
   };
 }
+
+/** Text sent to the embedding model: document title and section path give the chunk context. */
+export const embeddingInput = (title: string, section: string, text: string) =>
+  `${title} > ${section}
+${text}`;
