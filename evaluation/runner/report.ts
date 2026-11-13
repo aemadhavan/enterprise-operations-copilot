@@ -100,28 +100,48 @@ export async function writeReport(
   }
 
   const arms = meta.arms;
-  const header = `| Case | Mode | ${arms.map((a) => `recall@5 ${a}`).join(" | ")} | Expected | Top-5 docs (hybrid) |`;
-  const sep = `|${"---|".repeat(arms.length + 4)}`;
+  const rr = (v: number | null | undefined) =>
+    v === null || v === undefined || Number.isNaN(v) ? "—" : v.toFixed(2);
+  const header =
+    `| Case | Mode | ${arms.map((a) => `recall@5 ${a}`).join(" | ")} | ` +
+    `${arms.map((a) => `RR ${a}`).join(" | ")} | Expected | Top-5 docs (hybrid) |`;
+  const sep = `|${"---|".repeat(2 * arms.length + 4)}`;
   const rows = meta.cases.flatMap((id) =>
     meta.modes.map((mode) => {
       const by = (arm: string) =>
         results.find((r) => r.case_id === id && r.mode === mode && r.arm === arm);
       const h = by("hybrid") ?? by(arms[0]);
-      return `| ${id} | ${mode} | ${arms.map((a) => pct(by(a)?.recall_at_5)).join(" | ")} | ${(h?.expected_sources ?? []).join(", ")} | ${(h?.retrieved_docs ?? []).join(", ")} |`;
+      return (
+        `| ${id} | ${mode} | ${arms.map((a) => pct(by(a)?.recall_at_5)).join(" | ")} | ` +
+        `${arms.map((a) => rr(by(a)?.reciprocal_rank)).join(" | ")} | ` +
+        `${(h?.expected_sources ?? []).join(", ")} | ${(h?.retrieved_docs ?? []).join(", ")} |`
+      );
     }),
   );
-  const means = meta.modes.map((mode) => {
-    const m = arms.map((arm) =>
-      pct(
-        mean(
-          results
-            .filter((r) => r.mode === mode && r.arm === arm && r.recall_at_5 !== null)
-            .map((r) => r.recall_at_5 as number),
-        ),
-      ),
+  const meanOf = (mode: string, arm: string, key: "recall_at_5" | "reciprocal_rank") =>
+    mean(
+      results
+        .filter((r) => r.mode === mode && r.arm === arm && r[key] !== null && r[key] !== undefined)
+        .map((r) => r[key] as number),
     );
-    return `| **mean** | ${mode} | ${m.join(" | ")} | | |`;
-  });
+  const means = meta.modes.map(
+    (mode) =>
+      `| **mean** | ${mode} | ${arms.map((a) => pct(meanOf(mode, a, "recall_at_5"))).join(" | ")} | ` +
+      `${arms.map((a) => rr(meanOf(mode, a, "reciprocal_rank"))).join(" | ")} | | |`,
+  );
+  const mrrTable = [
+    "## MRR (reported, not gated)",
+    "",
+    `| Mode | ${arms.map((a) => `MRR ${a}`).join(" | ")} |`,
+    `|${"---|".repeat(arms.length + 1)}`,
+    ...meta.modes.map(
+      (mode) =>
+        `| ${mode} | ${arms.map((a) => rr(meanOf(mode, a, "reciprocal_rank"))).join(" | ")} |`,
+    ),
+    "",
+    "MRR = mean of 1 / rank of the first expected source among distinct retrieved doc IDs.",
+    "",
+  ];
   const md = [
     `# Eval summary: Tier ${meta.tier}, ${meta.milestone}`,
     "",
@@ -140,6 +160,7 @@ export async function writeReport(
       ? `**Regressions vs last pass:** ${regressions.map((r) => `${r.key} ${pct(r.previous)} → ${pct(r.current)}`).join("; ")}`
       : "No regressions vs last pass.",
     "",
+    ...mrrTable,
     "## Per case",
     "",
     header,

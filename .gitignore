@@ -19,4 +19,3 @@ npm-debug.log*
 !.env.example
 *.tmp
 Thumbs.db
-evaluation/cache/

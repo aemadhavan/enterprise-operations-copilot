@@ -19,6 +19,7 @@ export interface CaseResult {
   mode: Mode;
   arm: SearchArms;
   recall_at_5: number | null; // null = skipped (no expected sources)
+  reciprocal_rank?: number | null; // MRR input, reported only
   retrieved_docs?: string[];
   expected_sources?: string[];
   latency_ms?: number;

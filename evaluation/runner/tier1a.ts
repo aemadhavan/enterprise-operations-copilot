@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { distinctDocIds, hybridSearch, type SearchArms } from "@/lib/retrieval/hybrid";
+import { reciprocalRank } from "./metrics/mrr";
 import { recallAt5 } from "./metrics/recall";
 import type { CaseResult, GoldenCase, Mode } from "./types";
 
@@ -32,6 +33,7 @@ export async function runRetrieval(
           mode,
           arm,
           recall_at_5: recallAt5(c.expected_sources, ranked, edges),
+          reciprocal_rank: reciprocalRank(c.expected_sources, ranked),
           retrieved_docs: distinctDocIds(ranked).slice(0, 5),
           expected_sources: c.expected_sources,
           latency_ms,
