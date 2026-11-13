@@ -30,12 +30,13 @@ async function graphEdgesFor(c: GoldenCase, nodes: GraphNode[]) {
   const results = await Promise.all(
     seeds.map((start_id) => graphQuery({ mode: "node", start_id, max_hops: hops })),
   );
-  return { edges: results.flatMap((r) => r.edges), seeds };
+  // Edges and nodes both carry source_doc; both count on graph routes (spec clarification).
+  return { edges: results.flatMap((r) => [...r.edges, ...r.nodes]), seeds };
 }
 
 /**
  * Tier 1a retrieval: calls lib/retrieval and lib/graph directly, no chat model (FR-020, FR-021).
- * `baseline` = hybrid text only; `graphrag` = hybrid text + graph edges on graph-route cases.
+ * `baseline` = hybrid text only; `graphrag` = hybrid text + graph edges and nodes on graph-route cases.
  */
 export async function runRetrieval(
   cases: GoldenCase[],

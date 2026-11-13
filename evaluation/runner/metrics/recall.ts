@@ -2,7 +2,8 @@
  * Retrieval recall@5 (SC-010, clarification 1).
  *
  * Retrieved set = the first 5 *distinct* doc IDs in the ranked chunk list, plus every
- * `source_doc` of a returned graph edge (graph routes only).
+ * `source_doc` of every returned graph edge and returned graph node (graph routes only;
+ * spec clarification 2026-11-14).
  * Score = |expected ∩ retrieved| ÷ min(5, |expected|), capped at 1.
  * Cases with no expected sources are skipped (null), not scored as 0 or 1.
  */

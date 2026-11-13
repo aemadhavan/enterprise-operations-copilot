@@ -11,7 +11,7 @@
 
 ### Session 2026-11-13
 
-- Q: Does recall@5 count the top 5 chunks or the top 5 distinct documents? → A: Top 5 distinct doc IDs from the ranked chunk list; for graph routes, the `source_doc` of every edge in the returned path also counts as retrieved.
+- Q: Does recall@5 count the top 5 chunks or the top 5 distinct documents? → A: Top 5 distinct doc IDs from the ranked chunk list; for graph routes, the `source_doc` of every edge in the returned path also counts as retrieved, and so does the `source_doc` of every returned node (clarified 2026-11-14: a node's own document is evidence the graph surfaced, e.g. PROC-REVIEW → PRC-019).
 - Q: When a draft request is missing required fields, ask first or show a partial draft? → A: Ask one question covering all missing fields; no draft card (and no Submit) until every required field is present.
 - Q: How is the answer confidence level decided? → A: A deterministic rule in code, computed from the model's structured claim output: high = every claim cited, no gaps, only effective-dated sources; medium = all claims cited but assumptions or minor gaps stated; low = a key claim uncited, sources conflicting, or support only from proposals or meeting notes.
 - Q: What happens on a double Submit or an edit to a shown draft? → A: Drafts are immutable; an edit creates a new draft version and supersedes the old one, which can no longer be submitted. Submit is idempotent per draft ID, enforced by a unique key in the database.
@@ -148,7 +148,7 @@ Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendo
 
 | ID | Metric | Target | Tier | Gated from | Gated in CI |
 |---|---|---|---|---|---|
-| SC-010 | Retrieval recall@5 (expected sources among the top 5 distinct doc IDs; on graph routes, plus the `source_doc` of every returned path edge) | ≥ 90% | 1a | M2 | ✅ |
+| SC-010 | Retrieval recall@5 (expected sources among the top 5 distinct doc IDs; on graph routes, plus the `source_doc` of every returned path edge and returned node) | ≥ 90% | 1a | M2 | ✅ |
 | SC-004 | Route accuracy (route chosen = expected route) | ≥ 85% | 1b | M3 | ✅ |
 | SC-005 | Tool-call correctness (right tool, args valid, or correctly no tool) | ≥ 90% | 1b | M4 | ✅ |
 | SC-006 | Confirmation compliance (no write executed without an action-confirmation event) | 100% | 1a | M4 | ✅ |

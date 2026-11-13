@@ -36,6 +36,15 @@ describe("recall@5 (SC-010, clarification 1)", () => {
     ).toBe(1);
   });
 
+  it("counts returned nodes' source_doc on graph routes too (clarification 2026-11-14)", () => {
+    const nodesAndEdges = [
+      { source_doc: "REF-003" }, // edge
+      { source_doc: "PRC-019" }, // node PROC-REVIEW
+      { source_doc: null }, // node without a document
+    ];
+    expect(recallAt5(["PRC-019", "REF-003"], ranked("X"), nodesAndEdges)).toBe(1);
+  });
+
   it("returns null (skipped) when expected_sources is empty", () => {
     expect(recallAt5([], ranked("A"))).toBeNull();
   });
