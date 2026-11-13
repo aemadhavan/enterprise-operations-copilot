@@ -1,0 +1,67 @@
+id,label,name,classification,description,source_doc
+POL-001,Policy,Information Classification Policy,,Defines Public/Internal/Confidential/Restricted levels and data category mapping,POL-001
+POL-014,Policy,Customer Data Access Policy,,Rules for access to Customer PII and contact details; v2.1,POL-014
+POL-022,Policy,Third-Party and Contractor Access Policy,,Prerequisites duration privileged limits and offboarding for contractors,POL-022
+POL-030,Policy,Data Retention Policy,,Retention periods for customer data access records logs and tickets,POL-030
+POL-041,Policy,Privileged Access Management Policy,,Just-in-time admin access via PAM vault; max 8 hours,POL-041
+VND-002,Policy,Supplier Security Assessment Standard,,Vendor assessment required for Confidential or Restricted access; valid 12 months,VND-002
+PROC-ONBOARD,Process,Contractor onboarding,,Documented in PRC-007 steps 1-8,PRC-007
+PROC-OFFBOARD,Process,Contractor offboarding,,Documented in PRC-007 steps 9-11,PRC-007
+PROC-ACCESS,Process,Access request and approval,,Documented in PRC-012,PRC-012
+PROC-REVIEW,Process,Periodic access review,,Documented in PRC-019,PRC-019
+PROC-EXPORT,Process,Customer data bulk export,,Governed by POL-014 section 3.5,POL-014
+SYS-CRM,System,Atlas CRM,Restricted,Customer accounts and interactions,REF-003
+SYS-DWH,System,Lumen Data Warehouse,Restricted,Analytics and reporting,REF-003
+SYS-BILL,System,Ledger Billing,Restricted,Invoicing and payments,REF-003
+SYS-HELP,System,Harbor Service Desk,Confidential,IT and customer support tickets,REF-003
+SYS-WIKI,System,Compass Wiki,Internal,Internal knowledge base,REF-003
+SYS-HR,System,Pulse HRIS,Restricted,Employee and contractor records,REF-003
+SYS-IAM,System,Gatekeeper IAM,Restricted,Identity access and PAM vault,REF-003
+DC-CUST-PII,DataClass,Customer PII,Restricted,,POL-001
+DC-PAY,DataClass,Payment card data,Restricted,,POL-001
+DC-EMP-PII,DataClass,Employee PII,Restricted,,POL-001
+DC-FIN,DataClass,Financial records,Confidential,,POL-001
+DC-CONTACT,DataClass,Customer contact details,Confidential,,POL-001
+DC-OPS,DataClass,Operational data,Internal,,POL-001
+TEAM-SECGOV,Team,Security Governance,,,REF-005
+TEAM-PRIV,Team,Privacy Office,,,POL-030
+TEAM-IAM,Team,Identity & Access,,,REF-003
+TEAM-ITSM,Team,IT Service Management,,,REF-003
+TEAM-CUSTPLAT,Team,Customer Platforms,,,REF-003
+TEAM-DATAENG,Team,Data Engineering,,,REF-003
+TEAM-FINSYS,Team,Finance Systems,,,REF-003
+TEAM-PEOPLE,Team,People Systems,,,REF-003
+TEAM-DW,Team,Digital Workplace,,,REF-003
+PER-PNAIR,Person,Priya Nair,,Head of Security Governance,REF-005
+PER-DOKAFOR,Person,Daniel Okafor,,Privacy Officer,REF-005
+PER-AMEHTA,Person,Arjun Mehta,,Identity & Access lead; data owner of Gatekeeper IAM,REF-003
+PER-TGALLAGHER,Person,Tom Gallagher,,Data owner of Atlas CRM,REF-003
+PER-MLTAN,Person,Mei Lin Tan,,Data owner of Lumen Data Warehouse,REF-003
+PER-SREYES,Person,Sofia Reyes,,Finance Systems Lead; data owner of Ledger Billing,REF-005
+PER-HBROOKS,Person,Hannah Brooks,,Data owner of Pulse HRIS,REF-003
+PER-GWHITFIELD,Person,Grace Whitfield,,IT Service Management; data owner of Harbor Service Desk,REF-003
+PER-LNOVAK,Person,Liam Novak,,Data owner of Compass Wiki,REF-003
+ROLE-EMP,Role,Employee,,,REF-005
+ROLE-CONTRACTOR,Role,Contractor,,Includes consultants and vendor staff,POL-022
+ROLE-PRIV-ADMIN,Role,Privileged administrator,,Admin access to production systems,POL-041
+APR-LM,Approval,Line manager approval,,Given by the requester's sponsor,REF-005
+APR-DO,Approval,Data owner approval,,Given by the data owner of the target system,REF-005
+APR-SEC,Approval,Security Governance approval,,,REF-005
+APR-PRIV,Approval,Privacy Officer approval,,,REF-005
+APR-FINSYS,Approval,Finance Systems Lead sign-off,,Required for payment card data,REF-005
+APR-HEADSEC,Approval,Head of Security Governance approval,,No delegation; contractor privileged access,REF-005
+CTL-01,Control,Multi-factor authentication,,,REF-004
+CTL-02,Control,Time-bound access,,Contractor Restricted access max 90 days; end date mandatory,REF-004
+CTL-03,Control,Confidentiality agreement,,,REF-004
+CTL-04,Control,Security awareness training,,Within last 12 months,REF-004
+CTL-05,Control,Non-production masking,,,REF-004
+CTL-06,Control,Session logging and monitoring,,Includes DLP alerts on exports over 1000 records,REF-004
+CTL-07,Control,Periodic access review,,Quarterly; monthly for contractor Restricted access,REF-004
+CTL-08,Control,Bulk export approval,,Over 1000 customer records needs data owner approval,REF-004
+CTL-09,Control,Background check,,,REF-004
+CTL-10,Control,PCI DSS training,,Annual,REF-004
+VEN-BRIGHTLINE,Vendor,Brightline Analytics,,Rating Medium; assessment valid until 2027-06-30,VND-002
+VEN-NORTHGATE,Vendor,Northgate Consulting,,Rating Low; assessment valid until 2026-12-31; renewal due,VND-002
+VEN-QUILLON,Vendor,Quillon Data Services,,Rating Medium; assessment EXPIRED 2026-09-30,VND-002
+INC-2026-031,Incident,Contractor retained Atlas CRM access after engagement ended,,Severity Medium; 47 days; 2026-06-18,INC-2026-031
+INC-2026-044,Incident,Unapproved bulk export from Lumen Data Warehouse,,Severity High; 12400 records; 2026-09-03,INC-2026-044

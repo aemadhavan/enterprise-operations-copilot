@@ -1,0 +1,122 @@
+source,relation,target,condition,source_doc
+POL-022,governs,PROC-ONBOARD,,POL-022
+POL-022,governs,PROC-OFFBOARD,,POL-022
+POL-022,governs,PROC-ACCESS,requester=Contractor,POL-022
+POL-014,governs,PROC-ACCESS,,POL-014
+POL-041,governs,PROC-ACCESS,access_level=admin,POL-041
+POL-014,governs,PROC-REVIEW,,PRC-019
+POL-014,governs,PROC-EXPORT,,POL-014
+VND-002,governs,PROC-ONBOARD,requester=vendor staff,PRC-007
+POL-001,protects,DC-CUST-PII,,POL-001
+POL-001,protects,DC-PAY,,POL-001
+POL-001,protects,DC-EMP-PII,,POL-001
+POL-001,protects,DC-FIN,,POL-001
+POL-001,protects,DC-CONTACT,,POL-001
+POL-001,protects,DC-OPS,,POL-001
+POL-014,protects,DC-CUST-PII,,POL-014
+POL-014,protects,DC-CONTACT,,POL-014
+PROC-ONBOARD,uses,SYS-HELP,,PRC-007
+PROC-ONBOARD,uses,SYS-HR,,PRC-007
+PROC-ONBOARD,uses,SYS-IAM,,PRC-007
+PROC-OFFBOARD,uses,SYS-HELP,,PRC-007
+PROC-OFFBOARD,uses,SYS-IAM,,PRC-007
+PROC-OFFBOARD,uses,SYS-HR,,PRC-007
+PROC-ACCESS,uses,SYS-HELP,,PRC-012
+PROC-ACCESS,uses,SYS-IAM,,PRC-012
+PROC-REVIEW,uses,SYS-IAM,,PRC-019
+PROC-EXPORT,uses,SYS-DWH,,POL-014
+PROC-EXPORT,uses,SYS-CRM,,POL-014
+SYS-CRM,stores,DC-CUST-PII,,REF-003
+SYS-CRM,stores,DC-CONTACT,,REF-003
+SYS-DWH,stores,DC-CUST-PII,,REF-003
+SYS-DWH,stores,DC-FIN,,REF-003
+SYS-DWH,stores,DC-OPS,,REF-003
+SYS-BILL,stores,DC-PAY,,REF-003
+SYS-BILL,stores,DC-FIN,,REF-003
+SYS-BILL,stores,DC-CONTACT,,REF-003
+SYS-HELP,stores,DC-CONTACT,,REF-003
+SYS-HELP,stores,DC-OPS,,REF-003
+SYS-WIKI,stores,DC-OPS,,REF-003
+SYS-HR,stores,DC-EMP-PII,,REF-003
+SYS-IAM,stores,DC-EMP-PII,,REF-003
+SYS-IAM,stores,DC-OPS,,REF-003
+SYS-CRM,feeds,SYS-DWH,nightly customer data load,REF-003
+SYS-BILL,feeds,SYS-DWH,nightly financial data load,REF-003
+SYS-CRM,owned_by,TEAM-CUSTPLAT,,REF-003
+SYS-DWH,owned_by,TEAM-DATAENG,,REF-003
+SYS-BILL,owned_by,TEAM-FINSYS,,REF-003
+SYS-HELP,owned_by,TEAM-ITSM,,REF-003
+SYS-WIKI,owned_by,TEAM-DW,,REF-003
+SYS-HR,owned_by,TEAM-PEOPLE,,REF-003
+SYS-IAM,owned_by,TEAM-IAM,,REF-003
+SYS-CRM,data_owner,PER-TGALLAGHER,,REF-003
+SYS-DWH,data_owner,PER-MLTAN,,REF-003
+SYS-BILL,data_owner,PER-SREYES,,REF-003
+SYS-HELP,data_owner,PER-GWHITFIELD,,REF-003
+SYS-WIKI,data_owner,PER-LNOVAK,,REF-003
+SYS-HR,data_owner,PER-HBROOKS,,REF-003
+SYS-IAM,data_owner,PER-AMEHTA,,REF-003
+PER-PNAIR,member_of,TEAM-SECGOV,,REF-005
+PER-DOKAFOR,member_of,TEAM-PRIV,,REF-005
+PER-AMEHTA,member_of,TEAM-IAM,,PRC-012
+PER-TGALLAGHER,member_of,TEAM-CUSTPLAT,,REF-003
+PER-MLTAN,member_of,TEAM-DATAENG,,REF-003
+PER-SREYES,member_of,TEAM-FINSYS,,REF-005
+PER-HBROOKS,member_of,TEAM-PEOPLE,,REF-003
+PER-GWHITFIELD,member_of,TEAM-ITSM,,PRC-007
+PER-LNOVAK,member_of,TEAM-DW,,REF-003
+PER-GWHITFIELD,responsible_for,PROC-ONBOARD,,PRC-007
+PER-AMEHTA,responsible_for,PROC-OFFBOARD,,PRC-007
+PER-AMEHTA,responsible_for,PROC-ACCESS,,PRC-012
+PER-PNAIR,responsible_for,PROC-REVIEW,,PRC-019
+PER-MLTAN,responsible_for,PROC-EXPORT,system=SYS-DWH,POL-014
+PER-TGALLAGHER,responsible_for,PROC-EXPORT,system=SYS-CRM,POL-014
+DC-CUST-PII,requires,CTL-01,,REF-004
+DC-CUST-PII,requires,CTL-06,,POL-014
+DC-CUST-PII,requires,CTL-05,,POL-014
+DC-CUST-PII,requires,CTL-08,,POL-014
+DC-CUST-PII,requires,CTL-07,,POL-014
+DC-CUST-PII,requires,CTL-02,requester=Contractor,POL-014
+DC-PAY,requires,CTL-01,,REF-004
+DC-PAY,requires,CTL-06,,REF-004
+DC-PAY,requires,CTL-07,,REF-004
+DC-PAY,requires,CTL-10,,REF-005
+DC-EMP-PII,requires,CTL-01,,REF-004
+DC-EMP-PII,requires,CTL-06,,REF-004
+DC-EMP-PII,requires,CTL-07,,REF-004
+DC-FIN,requires,CTL-01,,REF-004
+DC-FIN,requires,CTL-07,,REF-004
+DC-CONTACT,requires,CTL-01,,REF-004
+DC-CONTACT,requires,CTL-07,,REF-004
+DC-PAY,requires,APR-FINSYS,,REF-005
+ROLE-CONTRACTOR,requires,CTL-03,,POL-022
+ROLE-CONTRACTOR,requires,CTL-04,,POL-022
+ROLE-CONTRACTOR,requires,CTL-09,classification=Restricted,POL-022
+ROLE-CONTRACTOR,requires,CTL-02,classification=Restricted,POL-022
+ROLE-EMP,requires,APR-LM,classification=Internal|Confidential|Restricted,REF-005
+ROLE-EMP,requires,APR-DO,classification=Confidential|Restricted,REF-005
+ROLE-EMP,requires,APR-SEC,classification=Restricted,REF-005
+ROLE-CONTRACTOR,requires,APR-LM,classification=Internal|Confidential|Restricted,REF-005
+ROLE-CONTRACTOR,requires,APR-DO,classification=Confidential|Restricted,REF-005
+ROLE-CONTRACTOR,requires,APR-SEC,classification=Confidential|Restricted,REF-005
+ROLE-CONTRACTOR,requires,APR-PRIV,classification=Restricted,REF-005
+ROLE-PRIV-ADMIN,requires,APR-SEC,classification=Restricted,POL-041
+ROLE-PRIV-ADMIN,requires,APR-HEADSEC,requester=Contractor,POL-022
+ROLE-PRIV-ADMIN,requires,CTL-01,,POL-041
+ROLE-PRIV-ADMIN,requires,CTL-06,,POL-041
+APR-SEC,approved_by,PER-PNAIR,or delegate,REF-005
+APR-PRIV,approved_by,PER-DOKAFOR,,REF-005
+APR-FINSYS,approved_by,PER-SREYES,,REF-005
+APR-HEADSEC,approved_by,PER-PNAIR,no delegation,REF-005
+VEN-BRIGHTLINE,assessed_under,VND-002,valid until 2027-06-30,VND-002
+VEN-NORTHGATE,assessed_under,VND-002,valid until 2026-12-31,VND-002
+VEN-QUILLON,assessed_under,VND-002,expired 2026-09-30,VND-002
+INC-2026-031,affects,SYS-CRM,,INC-2026-031
+INC-2026-031,affects,SYS-IAM,,INC-2026-031
+INC-2026-031,involved,VEN-BRIGHTLINE,,INC-2026-031
+INC-2026-031,led_to,CTL-02,end date mandatory in IAM,INC-2026-031
+INC-2026-031,led_to,CTL-07,monthly contractor reviews,INC-2026-031
+INC-2026-031,led_to,POL-014,v2.1 max duration 180 to 90 days,INC-2026-031
+INC-2026-044,affects,SYS-DWH,,INC-2026-044
+INC-2026-044,led_to,CTL-08,export blocked over 1000 records without approval,INC-2026-044
+INC-2026-044,led_to,CTL-06,DLP alerting on large exports,INC-2026-044
