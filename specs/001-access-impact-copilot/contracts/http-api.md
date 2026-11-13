@@ -23,6 +23,7 @@ Request: `{ confirmed_by: string }` (stated identity, unverified). Only the UI S
 - `proposed` → executes the write tool → `200 { request_id | ticket_id, status, idempotent_replay: false }`
 - already `confirmed` → `200` with the same IDs and `idempotent_replay: true` (no second execution)
 - `superseded` / `cancelled` → `409 { code: "draft_not_submittable" }`
+- policy re-check fails at confirm time (e.g. a vendor assessment expired since drafting) → `409 { code: "policy_check_failed", breaches }`, audit `blocked`, no execution (Constitution II)
 - Writes audit `confirmed` + `executed`. For access requests, it emits `access_request.submitted` and starts the approval workflow (FR-024).
 
 ## POST /api/drafts/{draft_id}/cancel

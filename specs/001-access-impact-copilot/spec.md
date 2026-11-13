@@ -177,5 +177,5 @@ Real ServiceNow, Jira, SharePoint, Entra or HRIS connectors; real provisioning; 
 
 ## 9. Open Questions
 
-- [NEEDS CLARIFICATION] Approval UI: in-chat buttons only, or a separate "pending approvals" page? *(Default: in-chat buttons.)*
-- [NEEDS CLARIFICATION] Judge model for evals: same model as the copilot, or a different one to reduce self-grading bias? *(Default: different model.)*
+- **Resolved (default, 2026-11-13):** Approval UI: in-chat buttons only, or a separate "pending approvals" page? *(Default: in-chat buttons.)*
+- **Resolved (default, 2026-11-13; `claude-opus-5-5`, plan ADR-010):** Judge model for evals: same model as the copilot, or a different one to reduce self-grading bias? *(Default: different model.)*
