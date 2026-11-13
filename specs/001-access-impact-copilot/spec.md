@@ -131,9 +131,9 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
 - **FR-019** The CI pipeline shall run Tier 1a on every push, and Tier 1b plus Tier 2 on every pull request to `main`, and shall fail when a gated metric is below threshold (see §6).
 - **FR-020** The evaluation runner shall provide three tiers:
   - **Tier 1a (`eval:fast`)**: no model calls, fully deterministic: fixture validation (`validate_seed.py`), retrieval recall@5, graph-query results, confirmation-gate compliance and the approval-hook guard (FR-024a).
-  - **Tier 1b (`eval:model`)**: model in the loop, no judge, temperature 0: route accuracy, tool correctness, safe behaviour, latency and cost.
+  - **Tier 1b (`eval:model`)**: model in the loop, no judge; fixed model IDs, fixed effort levels, strict JSON schemas, no sampling parameters: route accuracy, tool correctness, safe behaviour, latency and cost.
   - **Tier 2 (`eval:full`)**: Tier 1a + 1b plus judge-model scoring for groundedness, citation accuracy and completeness.
-- **FR-021** Tier 1a shall be available from milestone M2 and run after every implemented task. Tier 1b shall be available from M3 and run on pull requests and at each milestone check. At M5, Tier 1b shall be run 3 times and the results shall report the variation (min, max, mean) per metric. Each later milestone adds its metrics, so every task can be checked against the golden set before the next starts.
+- **FR-021** Tier 1a shall be available from milestone M2 and run after every implemented task. Tier 1b shall be available from M3 and run on pull requests and at each milestone check. Tier 1b shall use fixed model IDs, fixed effort levels, strict JSON schemas, no sampling parameters (current Claude models reject sampling parameters). At M5, Tier 1b shall be run 3 times and the results shall report the variation (min, max, mean) per metric. Each later milestone adds its metrics, so every task can be checked against the golden set before the next starts.
 - **FR-022** The evaluation runner shall accept a case filter (by ID range or category), so that partially built features can be evaluated on the cases they cover.
 
 ---
@@ -159,7 +159,7 @@ Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendo
 | SC-008 | p95 latency, Q&A cases | ≤ 10 s | 1b | M5 | Report |
 | SC-009 | Mean cost per request | Reported | 1b | M5 | Report |
 
-Tier 1a = no model calls, deterministic (every push). Tier 1b = model in the loop at temperature 0, no judge (PRs and milestone checks; 3 runs at M5 to report variation). Tier 2 = judge-scored. Methods are in `evaluation/README.md`.
+Tier 1a = no model calls, deterministic (every push). Tier 1b = model in the loop, no judge, with fixed model IDs, fixed effort levels, strict JSON schemas, no sampling parameters (PRs and milestone checks; 3 runs at M5 to report variation, which is measured rather than assumed to be zero). Tier 2 = judge-scored. Methods are in `evaluation/README.md`.
 
 Targets are deliberately below 100% where judgement is involved. Results are published as measured (Constitution VIII).
 

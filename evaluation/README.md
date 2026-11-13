@@ -6,7 +6,7 @@ Evaluation runs continuously from milestone M2, not as a final phase (spec FR-02
 | Tier | Command | Judge model | When it runs | Typical cost |
 |---|---|---|---|---|
 | **1a — fast** | `eval:fast` | No (no model calls at all) | After every implemented task; every push in CI | Free |
-| **1b — model** | `eval:model` | No (copilot model at temperature 0) | Milestone checks; every PR to `main`; 3 runs at M5 to report variation | Copilot calls only |
+| **1b — model** | `eval:model` | No (fixed model IDs + effort, strict schemas, no sampling params) | Milestone checks; every PR to `main`; 3 runs at M5 to report variation | Copilot calls only |
 | **2 — full** | `eval:full` | Yes | Feature freeze (M5); every PR to `main` | Copilot plus judge calls |
 
 Tier 1a covers fixture validation (`validate_seed.py`), retrieval recall@5, graph-query results, confirmation-gate compliance and the approval-hook guard. Tier 1b covers route accuracy, tool correctness, safe behaviour, latency and cost. Tier 1b depends on the model, so the M5 report gives min / max / mean over 3 runs. Risk labels (FR-003) and the separation-of-duties warning (FR-023) are covered by unit tests, not metrics.
@@ -38,7 +38,7 @@ All tiers accept `--mode baseline|graphrag|both` (`baseline` = hybrid keyword + 
 
 ## Judge hygiene
 - Use a different model from the copilot's, and record which in every results file.
-- Run judge prompts at temperature 0 and keep them in `evaluation/judges/`, versioned.
+- Judge model is `JUDGE_MODEL` (`claude-opus-5-5`), different from the copilot's. Use a fixed effort level and a strict JSON output schema; send no sampling parameters (current models reject them). Keep judge prompts in `evaluation/judges/`, versioned.
 - Hand-check at least 10 cases per published run, and log any disagreement in `docs/evaluation-results.md`.
 
 ## Outputs
