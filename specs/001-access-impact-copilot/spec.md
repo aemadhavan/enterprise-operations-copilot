@@ -7,6 +7,17 @@
 
 ---
 
+## Clarifications
+
+### Session 2026-11-13
+
+- Q: Does recall@5 count the top 5 chunks or the top 5 distinct documents? → A: Top 5 distinct doc IDs from the ranked chunk list; for graph routes, the `source_doc` of every edge in the returned path also counts as retrieved.
+- Q: When a draft request is missing required fields, ask first or show a partial draft? → A: Ask one question covering all missing fields; no draft card (and no Submit) until every required field is present.
+- Q: How is the answer confidence level decided? → A: A deterministic rule in code, computed from the model's structured claim output: high = every claim cited, no gaps, only effective-dated sources; medium = all claims cited but assumptions or minor gaps stated; low = a key claim uncited, sources conflicting, or support only from proposals or meeting notes.
+- Q: What happens on a double Submit or an edit to a shown draft? → A: Drafts are immutable; an edit creates a new draft version and supersedes the old one, which can no longer be submitted. Submit is idempotent per draft ID, enforced by a unique key in the database.
+
+---
+
 ## 1. Problem
 
 Before granting a contractor access to customer data, staff must work out which policies apply, which systems and data classes are involved, who owns them, which controls must be in place and who must approve. That knowledge is spread across policies, procedures, a system inventory, an approval matrix, vendor records and incident postmortems. Today it takes days of email, and mistakes happen. Incident INC-2026-031 (a contractor kept CRM access for 47 days after their engagement ended) is one example.
@@ -88,13 +99,13 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
   | `unsafe` | `refuse` | Bypass, injection or data-exfiltration attempt | GS-026–028 |
   | `ambiguous` | `clarify` | Missing system, requester type or access level | GS-029–030 |
 - **FR-005b** The graph query tool shall support three seed modes: (1) start from a node ID with a hop limit; (2) select all nodes by `label`, optionally filtered by `classification` or by edge `condition`; (3) start from a relation type (e.g. all `led_to` edges). Every returned edge shall carry its `source_doc`. Seed modes 2 and 3 serve corpus-wide questions such as GS-010, GS-013 and GS-016.
-- **FR-006** The system shall return every answer with citations, stated assumptions, identified gaps and a confidence level (`high` | `medium` | `low`).
+- **FR-006** The system shall return every answer with citations, stated assumptions, identified gaps and a confidence level (`high` | `medium` | `low`). The model shall return its answer as structured claims (claim text, cited doc ID + section or graph edge, source status: effective policy or proposal/meeting note), plus assumptions and gaps. Application code, not the model, shall derive confidence from that output: **high** = every claim cited, no gaps, only effective-dated sources; **medium** = every claim cited, with assumptions or minor gaps stated; **low** = any key claim uncited, conflicting sources, or support only from proposals or meeting notes. The rule shall be covered by unit tests.
 - **FR-007** If no retrieved evidence supports an answer, then the system shall state that the knowledge base does not cover the question and shall not produce an unsupported answer.
 - **FR-008** If sources conflict, or a source is a proposal or meeting note, then the system shall prefer the effective-dated policy and state the distinction explicitly.
 
 **Agent and actions**
-- **FR-009** When intent is `action`, the system shall produce a structured draft and list the approvals required by the Approval Matrix (REF-005).
-- **FR-010** The system shall execute a write tool only after an explicit human action-confirmation event for that specific draft. The gate shall be enforced in application code. The system shall never record an organisational approval (REF-005) on anyone's behalf.
+- **FR-009** When intent is `action`, the system shall produce a structured draft and list the approvals required by the Approval Matrix (REF-005). Required draft fields are requester name, requester type, sponsor, system, access level, duration and justification. If any are missing, the system shall ask one question that covers all of them and shall not show a draft card or a Submit control until they are complete. A policy breach (FR-011) is reported before missing fields are asked for.
+- **FR-010** The system shall execute a write tool only after an explicit human action-confirmation event for that specific draft. The gate shall be enforced in application code. The system shall never record an organisational approval (REF-005) on anyone's behalf. Drafts are immutable once shown: a change creates a new draft version and marks the previous one `superseded`, and a superseded or cancelled draft cannot be submitted. Each confirmation carries the draft ID as an idempotency key, protected by a database unique constraint, so a repeated Submit returns the existing request ID and causes no second execution.
 - **FR-011** If a drafted action breaches a policy constraint, then the system shall block the draft, cite the constraint and propose a compliant alternative.
 - **FR-012** When intent is `unsafe`, the system shall refuse, explain the legitimate path where one exists, and shall not call any write tool.
 - **FR-013** When intent is `ambiguous`, the system shall ask one clarifying question that covers the missing details.
@@ -129,7 +140,7 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
 
 ## 5. Key Entities
 
-Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendor, Incident, plus AccessRequestDraft, ApprovalEvent and AuditRecord at runtime. Graph relations are listed in `data/graph_seed/README.md`.
+Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendor, Incident, plus AccessRequestDraft, ApprovalEvent and AuditRecord at runtime. AccessRequestDraft has a `draft_id`, a `version`, and a status of `proposed` | `superseded` | `cancelled` | `confirmed`. A confirmed draft maps to exactly one request (unique on `draft_id`). Graph relations are listed in `data/graph_seed/README.md`.
 
 ---
 
@@ -137,7 +148,7 @@ Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendo
 
 | ID | Metric | Target | Tier | Gated from | Gated in CI |
 |---|---|---|---|---|---|
-| SC-010 | Retrieval recall@5 (expected sources in top 5) | ≥ 90% | 1a | M2 | ✅ |
+| SC-010 | Retrieval recall@5 (expected sources among the top 5 distinct doc IDs; on graph routes, plus the `source_doc` of every returned path edge) | ≥ 90% | 1a | M2 | ✅ |
 | SC-004 | Route accuracy (route chosen = expected route) | ≥ 85% | 1b | M3 | ✅ |
 | SC-005 | Tool-call correctness (right tool, args valid, or correctly no tool) | ≥ 90% | 1b | M4 | ✅ |
 | SC-006 | Confirmation compliance (no write executed without an action-confirmation event) | 100% | 1a | M4 | ✅ |
