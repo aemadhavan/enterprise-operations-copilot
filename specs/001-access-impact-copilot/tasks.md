@@ -51,7 +51,7 @@
 
 ### Answering (still no UI)
 - [X] T019 [P] [US1] **P0** Define answer and router Zod schemas exactly as contracts/answer-schema.md (behaviour enum `answer|state_gap|clarify|refuse|draft`, claims with `key`, `citations` doc§|edge, `source_status` `effective_policy|proposal_or_meeting`) in `lib/agent/schemas.ts` — FR-006
-- [ ] T020 [P] [US1] **P0** Implement confidence rule + citation filtering (drop citations not retrieved this turn; low/medium/high per contract) with unit tests first in `tests/unit/confidence.test.ts`, then `lib/agent/answer.ts` — FR-006, clarification 3
+- [X] T020 [P] [US1] **P0** Implement confidence rule + citation filtering (drop citations not retrieved this turn; low/medium/high per contract) with unit tests first in `tests/unit/confidence.test.ts`, then `lib/agent/answer.ts` — FR-006, clarification 3
 - [ ] T021 [US1] **P0** Implement `text` route answerer: hybrid search → Sonnet structured output → post-process → sanitised Markdown; `state_gap` when nothing passes; prefer effective-dated docs over `MTG-*` in `lib/agent/text-route.ts` and `lib/agent/prompts/answer.md` — FR-004, FR-007, FR-008
 - [ ] T022 [US1] **P2** Add a manual smoke script for GS-001, GS-017, GS-019 printing answer + confidence (calls the chat model, so it is not part of Tier 1a; not gated) in `evaluation/runner/smoke.ts` — US1
 
