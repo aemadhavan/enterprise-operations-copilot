@@ -1,6 +1,6 @@
 # Enterprise Operations Copilot — Constitution
 
-**Version:** 1.1.0 (added continuous-evaluation rules to III) · **Ratified:** 2026-11-13 · **Applies to:** every spec, plan, task and line of code in this repository, whether written by a human or an AI coding agent.
+**Version:** 1.1.1 (PATCH: III wording split into Tier 1a / Tier 1b; 1.1.0 added continuous-evaluation rules to III) · **Ratified:** 2026-11-13 · **Applies to:** every spec, plan, task and line of code in this repository, whether written by a human or an AI coding agent.
 
 These principles are non-negotiable. If a spec, plan or task conflicts with them, the constitution wins and the conflicting artefact is changed first.
 
@@ -23,7 +23,7 @@ These principles are non-negotiable. If a spec, plan or task conflicts with them
 - The golden set (`evaluation/golden_set.jsonl`) is the executable form of the spec's success criteria.
 - Evals run in CI on every push to `main` and every pull request. A merge that drops any gated metric below its threshold fails the build.
 - A new capability is not "done" until it has golden cases that cover it.
-- Evaluation starts as soon as the first retrieval code exists (M2), not at the end. Deterministic Tier-1 checks run after every implemented task; judge-scored Tier-2 checks are added at feature freeze.
+- Evaluation starts as soon as the first retrieval code exists (M2), not at the end. Tier-1a deterministic checks run after every implemented task; Tier-1b model-in-loop checks run before each milestone; judge-scored Tier-2 checks are added at feature freeze.
 - No new task starts while a previously passing golden case is failing.
 
 ## IV. Observable by Default
