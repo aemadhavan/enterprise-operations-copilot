@@ -241,7 +241,9 @@ Public repo with a live demo, published by Sunday evening; demo ≤ 2 min; READM
 ### 10.2 Roadmap beyond the weekend
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| **PoC** (this MVP) | Synthetic corpus, 1 workflow, mock tools | Quality targets met; stakeholder demo |
+| **v0.1 weekend slice** (published Sun 15 Nov) | Cited lookups (M2); graph, router and one chat page (M3); M4 core: `check_policy`, `propose_access_request`, draft card, confirm with idempotency + policy re-check, audit log, test-first safety gates, refusals, **in-memory** approval timeline; minimal Langfuse trace; Tier-1a CI; Vercel deploy; README (tasks.md P0) | recall@5 ≥ 90%; confirmation compliance 100% in Tier 1a; hero steps 1–2 and 4–7 work on the live URL |
+| **v0.2** (the week after) | Tier 1b (route, tool, safety; 3-run variation) and Tier 2 judge evals with the PR gate; Vercel Workflow (hook per approver + SLA timers); clarify route; onboarding tickets (FR-026); Bedrock provider switch (FR-025); baseline toggle and eval dashboard; personal-name redaction; demo video and launch post | All spec §6 gates met as measured; baseline vs GraphRAG table published (Constitution VIII) |
+| **PoC complete** (v0.1 + v0.2) | Synthetic corpus, 1 workflow, mock tools | Quality targets met; stakeholder demo |
 | **Pilot** (6–8 weeks) | 1 department's real policies; read-only connectors; Teams app; 20 users | ≥ 50% faster to complete request; ≥ 4/5 satisfaction; zero ungated actions |
 | **Production** | Org-wide; ITSM write integration; SSO with document-level permission trimming; SLAs and runbooks | Security and privacy sign-off; model risk review; on-call and monitoring |
 
