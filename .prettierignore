@@ -1,0 +1,12 @@
+node_modules/
+.next/
+coverage/
+pnpm-lock.yaml
+data/
+evaluation/golden_set.jsonl
+evaluation/results/
+evaluation/cache/
+specs/
+docs/
+.specify/
+*.md

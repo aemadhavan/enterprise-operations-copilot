@@ -18,7 +18,7 @@
 
 - [X] T001 **P0** Scaffold Next.js (current stable from `create-next-app@latest`, 16.x) App Router + TypeScript (strict) with pnpm, Node 22 engines field, `app/` and `lib/` folders per plan.md in `package.json`, `tsconfig.json`, `next.config.ts` — ADR-001
 - [X] T002 [P] **P0** Add dependencies pinned with a committed lockfile: `@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk`, `@modelcontextprotocol/sdk`, `zod`, `@neondatabase/serverless`, `voyageai`, `langfuse`, `gray-matter`, `dotenv`, `vitest`, `tsx` in `package.json` — ADR-001–ADR-007, ADR-010, PRD §8.1 LLM03
-- [ ] T003 [P] **P0** Configure Vitest (unit + integration projects, `tests/` roots) and ESLint/Prettier in `vitest.config.ts`, `eslint.config.mjs` — Constitution III
+- [X] T003 [P] **P0** Configure Vitest (unit + integration projects, `tests/` roots) and ESLint/Prettier in `vitest.config.ts`, `eslint.config.mjs` — Constitution III
 - [ ] T004 [P] **P0** Create typed env loader: Zod-validated config for `MODEL_PROVIDER`, `ROUTER_MODEL`, `ANTHROPIC_MODEL`, `JUDGE_MODEL`, `BEDROCK_*`, `EMBEDDING_*`, `VOYAGE_API_KEY`, `DATABASE_URL`, `LANGFUSE_*`, `APPROVAL_ENGINE`, `SLA_TIME_SCALE_SECONDS_PER_BUSINESS_DAY`, demo caps; scripts call `dotenv.config({ path: '.env.local' })` in `lib/config.ts` and `scripts/_env.ts` — FR-025, ADR-007, ADR-010, Constitution V
 - [ ] T005 [P] **P0** Add package scripts `dev`, `build`, `test`, `db:migrate`, `ingest`, `eval:fast`, `eval:model`, `eval:full`, `validate` (wraps `python scripts/validate_seed.py`) in `package.json`; list them in the CLAUDE.md Commands section — FR-018–FR-022
 
