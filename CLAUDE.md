@@ -8,7 +8,7 @@ A weekend portfolio PoC: a governed GraphRAG + agentic copilot that answers acce
 ## Read these first, in order
 1. `.specify/memory/constitution.md`: non-negotiable rules. They override everything else.
 2. `docs/PRD.md`: why, users, the end-to-end hero journey (§5, also the demo script), UX wireframes (§6), MoSCoW scope (§7), NFRs and OWASP LLM mapping (§8), weekend milestones and cut line (§10).
-3. `specs/001-access-impact-copilot/spec.md`: what to build (US1–US6, FR-001–FR-025 incl. FR-005a/b, FR-024a/b, SC-001–SC-010).
+3. `specs/001-access-impact-copilot/spec.md`: what to build (US1–US6, FR-001–FR-026 incl. FR-005a/b, FR-024a/b, SC-001–SC-010).
 4. `data/graph_seed/README.md`: graph schema and the hero traversal (GS-009).
 5. `evaluation/golden_set.jsonl` and `evaluation/README.md`: the acceptance tests, the eval tiers, and when each metric switches on.
 
@@ -17,10 +17,11 @@ When the PRD and the spec disagree, the spec wins for requirements and the PRD w
 ## Workflow: spec-driven development (GitHub Spec Kit)
 `/speckit.plan` → `/speckit.tasks` → `/speckit.analyze` → `/speckit.implement`
 - Implement **one task at a time**. Every task references an FR-xxx ID.
-- **Build the Tier-1 eval runner during M2** (FR-021), right after basic retrieval works. It's an early task, not a Sunday task.
-- After every task, run `eval:fast` on the cases the current milestone covers (see `evaluation/README.md`), and include the result in the commit message. Don't start the next task while a previously passing case is failing.
+- **Build the Tier-1a eval runner during M2** (FR-021), right after basic retrieval works. It's an early task, not a Sunday task. Tier 1b (`eval:model`) follows in M3.
+- Eval tiers: **1a** `eval:fast` = no model calls (validator, recall@5, graph queries, confirmation gate, hook guard), every push. **1b** `eval:model` = model in the loop at temperature 0 (route, tool, safety), on PRs and milestone checks, run 3 times at M5 to report variation. **2** `eval:full` = judge-scored.
+- After every task, run `eval:fast` on the cases the current milestone covers (plus `eval:model` when the task changes model behaviour; see `evaluation/README.md`), and include the result in the commit message. Don't start the next task while a previously passing case is failing.
 - To change behaviour, update the spec and golden set first, then the code.
-- Do not edit `data/raw/`, `data/graph_seed/` or `evaluation/golden_set.jsonl` without asking. They are the fixed test fixture. After any change, run `python3 scripts/validate_seed.py`.
+- Do not edit `data/raw/`, `data/graph_seed/` or `evaluation/golden_set.jsonl` without asking. They are the fixed test fixture. After any change, run the validator (see Commands).
 
 ## Stack (record each as an ADR in plan.md)
 - **ADR-001 App:** TypeScript, Next.js (App Router), deployed on Vercel.
@@ -36,6 +37,8 @@ When the PRD and the spec disagree, the spec wins for requirements and the PRD w
   - Hooks are resumed only from the "Simulated approver" panel, never from agent tools.
   - Cost is cents (about 40 workflow events per request), and suspended runs use no compute.
   - The production equivalent is EventBridge + Step Functions callback tokens (PRD §10.3), and the hook-per-approver design maps one-to-one onto it.
+- **ADR-007 Embeddings:** one fixed embedding model, independent of `MODEL_PROVIDER`, so the index and recall@5 don't change when the chat provider switches. Default: a Voyage embedding model (`EMBEDDING_PROVIDER=voyage`). AWS alternative: Amazon Titan Text Embeddings V2 on Bedrock (`EMBEDDING_PROVIDER=bedrock`). Changing the embedding model means a full re-index.
+  - *Rejected:* tying embeddings to `MODEL_PROVIDER`. The Anthropic API has no embeddings endpoint, and switching would silently invalidate the index and the eval baseline.
 - **Observability:** Langfuse for tracing; append-only `audit_log` table.
 - Evals: TypeScript runner over the golden set, run in two modes (`baseline` = hybrid text retrieval without the graph; `graphrag` = hybrid text + graph traversal), executed in GitHub Actions with gating thresholds from spec §6
 
@@ -50,5 +53,5 @@ When the PRD and the spec disagree, the spec wins for requirements and the PRD w
 PoC, not a platform: no auth, no multi-tenancy, no real connectors. Feature freeze Sunday 12:00. Publishing beats polish.
 
 ## Commands
-- `python3 scripts/validate_seed.py`: validate the fixtures (must pass)
+- `python scripts/validate_seed.py` (Windows) / `python3 scripts/validate_seed.py` (macOS/Linux): validate the fixtures (must pass)
 - Add the build, dev, ingest and eval commands here once scaffolded.

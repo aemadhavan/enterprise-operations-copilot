@@ -74,7 +74,7 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
 **Retrieval and answering**
 - **FR-001** The system shall ingest every document in `data/raw/`, keeping its metadata (doc_id, version, effective_date, owner) and section headings.
 - **FR-002** The system shall load the knowledge graph from `data/graph_seed/nodes.csv` and `edges.csv`, keeping each edge's `source_doc` and `condition`.
-- **FR-003** When a question is received, the system shall classify its intent as one of `lookup`, `entity`, `impact`, `action`, `unsafe`, `ambiguous`, and its risk as `low` or `high`.
+- **FR-003** When a question is received, the system shall classify its intent as one of `lookup`, `entity`, `impact`, `action`, `unsafe`, `ambiguous`, and its risk as `low` or `high`. Risk shall be `high` for `action` and `unsafe` intents and for any request that names a Restricted system or data class; otherwise `low`. *Verified by unit tests* covering every intent and at least one Restricted and one non-Restricted case (risk labels have no golden-set metric).
 - **FR-004** When intent is `lookup`, the system shall answer using hybrid text retrieval (keyword + vector). The route is recorded as `text`.
 - **FR-005** When intent is `entity` or `impact`, the system shall combine graph retrieval with text retrieval and include the graph path in the evidence.
 - **FR-005a** The router shall map intents to routes as follows, and record the route in the trace:
@@ -99,7 +99,8 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
 - **FR-012** When intent is `unsafe`, the system shall refuse, explain the legitimate path where one exists, and shall not call any write tool.
 - **FR-013** When intent is `ambiguous`, the system shall ask one clarifying question that covers the missing details.
 - **FR-014** Tools shall be exposed through an MCP server, each tool declaring its name, input schema and risk level (`read` | `write`). All integrations are mocks and shall be labelled "simulated" in the UI. The MCP server shall run **in-process** (via `@modelcontextprotocol/sdk` inside the Next.js server, not as a stdio child process), so the same code works locally and on serverless hosting.
-- **FR-023** When one person holds two approval roles on a draft (e.g. sponsor and data owner), the system shall show a separation-of-duties warning on the draft. It warns only and does not block, because policy permits it (PRD §14, question 5).
+- **FR-023** When one person holds two approval roles on a draft (e.g. sponsor and data owner), the system shall show a separation-of-duties warning on the draft. It warns only and does not block, because policy permits it (PRD §14, question 5). *Verified by* a unit test of the draft builder (sponsor = data owner → warning present; distinct people → no warning) and by GS-022.
+- **FR-026** The system shall provide a `create_onboarding_ticket` write tool with fields `contractor_name`, `vendor` (optional), `sponsor`, `start_date`, `end_date` and `restricted_access_expected` (boolean). It requires an action-confirmation event only (FR-010) and records no organisational approval. When `vendor` is given, the draft shall flag a supplier assessment that has expired or expires before `end_date` (VND-002), citing the expiry date (GS-024).
 
 **Orchestration and platform**
 - **FR-024** When the user confirms an action, the system shall emit a structured domain event (`access_request.submitted`), containing the request, the resolved approval chain (in PRC-012 §3 order) and the SLA (2 or 5 business days, PRC-012 §4). An approval workflow shall consume it and show each step in a status timeline: *Pending sponsor → Pending data owner → Pending Security Governance → Pending Privacy Officer* (only the steps REF-005 requires).
@@ -112,15 +113,16 @@ A user asks the copilot to raise a request. The copilot drafts it, shows the req
 **Governance and observability**
 - **FR-015** The system shall write an append-only audit record for every proposed, approved, rejected or executed action.
 - **FR-016** The system shall emit a trace per request covering classification, route, retrieved items, tool calls, latency, tokens and cost.
-- **FR-017** The system shall redact email addresses, phone numbers and personal names not present in the knowledge graph from logs and traces.
+- **FR-017** The system shall redact email addresses, phone numbers and ID-like strings (e.g. account, card or employee numbers) from logs and traces using deterministic pattern matching (**Must**). It should also redact personal names not present in the knowledge graph (**Should**; may be cut, PRD §10.1).
 
 **Evaluation**
 - **FR-018** The evaluation runner shall execute every golden case in both `baseline` and `graphrag` modes and write results to `evaluation/results/`.
-- **FR-019** The CI pipeline shall run Tier-1 evals on every push and Tier-2 evals on every pull request to `main`, and shall fail when a gated metric is below threshold (see §6).
-- **FR-020** The evaluation runner shall provide two tiers:
-  - **Tier 1 (`eval:fast`)**: deterministic checks needing no judge model: route accuracy, retrieval recall@5, tool correctness, approval compliance, safe behaviour, latency.
-  - **Tier 2 (`eval:full`)**: Tier 1 plus judge-model scoring for groundedness, citation accuracy and completeness.
-- **FR-021** The Tier-1 runner shall be available from milestone M2 onward. Each later milestone adds its metrics to it, so every implemented task can be checked against the golden set before the next task starts.
+- **FR-019** The CI pipeline shall run Tier 1a on every push, and Tier 1b plus Tier 2 on every pull request to `main`, and shall fail when a gated metric is below threshold (see §6).
+- **FR-020** The evaluation runner shall provide three tiers:
+  - **Tier 1a (`eval:fast`)**: no model calls, fully deterministic: fixture validation (`validate_seed.py`), retrieval recall@5, graph-query results, confirmation-gate compliance and the approval-hook guard (FR-024a).
+  - **Tier 1b (`eval:model`)**: model in the loop, no judge, temperature 0: route accuracy, tool correctness, safe behaviour, latency and cost.
+  - **Tier 2 (`eval:full`)**: Tier 1a + 1b plus judge-model scoring for groundedness, citation accuracy and completeness.
+- **FR-021** Tier 1a shall be available from milestone M2 and run after every implemented task. Tier 1b shall be available from M3 and run on pull requests and at each milestone check. At M5, Tier 1b shall be run 3 times and the results shall report the variation (min, max, mean) per metric. Each later milestone adds its metrics, so every task can be checked against the golden set before the next starts.
 - **FR-022** The evaluation runner shall accept a case filter (by ID range or category), so that partially built features can be evaluated on the cases they cover.
 
 ---
@@ -135,18 +137,18 @@ Policy, Process, System, DataClass, Team, Person, Role, Approval, Control, Vendo
 
 | ID | Metric | Target | Tier | Gated from | Gated in CI |
 |---|---|---|---|---|---|
-| SC-010 | Retrieval recall@5 (expected sources in top 5) | ≥ 90% | 1 | M2 | ✅ |
-| SC-004 | Route accuracy (route chosen = expected route) | ≥ 85% | 1 | M3 | ✅ |
-| SC-005 | Tool-call correctness (right tool, args valid, or correctly no tool) | ≥ 90% | 1 | M4 | ✅ |
-| SC-006 | Confirmation compliance (no write executed without an action-confirmation event) | 100% | 1 | M4 | ✅ |
-| SC-007 | Safe behaviour on unsafe cases (refuse, no write tool) | 100% | 1 | M4 | ✅ |
+| SC-010 | Retrieval recall@5 (expected sources in top 5) | ≥ 90% | 1a | M2 | ✅ |
+| SC-004 | Route accuracy (route chosen = expected route) | ≥ 85% | 1b | M3 | ✅ |
+| SC-005 | Tool-call correctness (right tool, args valid, or correctly no tool) | ≥ 90% | 1b | M4 | ✅ |
+| SC-006 | Confirmation compliance (no write executed without an action-confirmation event) | 100% | 1a | M4 | ✅ |
+| SC-007 | Safe behaviour on unsafe cases (refuse, no write tool) | 100% | 1b | M4 | ✅ |
 | SC-001 | Groundedness (claims supported by cited evidence), all answer cases | ≥ 90% | 2 | M5 | ✅ |
 | SC-002 | Citation accuracy (cited source supports the claim) | ≥ 90% | 2 | M5 | ✅ |
 | SC-003 | Answer completeness on multi-hop cases, graphrag vs baseline | graphrag ≥ baseline + 20 pts | 2 | M5 | Report |
-| SC-008 | p95 latency, Q&A cases | ≤ 10 s | 1 | M5 | Report |
-| SC-009 | Mean cost per request | Reported | 1 | M5 | Report |
+| SC-008 | p95 latency, Q&A cases | ≤ 10 s | 1b | M5 | Report |
+| SC-009 | Mean cost per request | Reported | 1b | M5 | Report |
 
-Tier 1 = deterministic, no judge model. Tier 2 = judge-scored. Methods are in `evaluation/README.md`.
+Tier 1a = no model calls, deterministic (every push). Tier 1b = model in the loop at temperature 0, no judge (PRs and milestone checks; 3 runs at M5 to report variation). Tier 2 = judge-scored. Methods are in `evaluation/README.md`.
 
 Targets are deliberately below 100% where judgement is involved. Results are published as measured (Constitution VIII).
 

@@ -161,11 +161,13 @@ If the UI toggle in step 3 was cut (§10.1 cut line), show the baseline vs Graph
 | **Must** | Draft → approval gate → mock tool via MCP; policy breach blocking | FR-009–FR-011, FR-014 |
 | **Must** | Refuse unsafe; clarify ambiguous | FR-012, FR-013 |
 | **Must** | Audit log; tracing | FR-015, FR-016 |
-| **Must** | Tiered eval runner (fast from M2, judge from M5), two modes, CI gate | FR-018–FR-022 |
-| **Should** | PII redaction in logs | FR-017 |
+| **Must** | Tiered eval runner (1a no-model from M2, 1b model-in-loop from M3, judge from M5), two modes, CI gate | FR-018–FR-022 |
+| **Must** | PII redaction in logs and traces: regex for emails, phone numbers, ID-like strings | FR-017 |
+| **Should** | PII redaction: personal-name detection (names not in the graph) | FR-017 |
 | **Should** | Domain event on submit plus durable approval workflow (Vercel Workflows; in-memory fallback) and status timeline | FR-024, FR-024a, FR-024b |
 | **Should** | Baseline vs GraphRAG side-by-side toggle in UI | US6 |
 | **Should** | Separation-of-duties warning when one person holds two approval roles | US3, FR-023 |
+| **Must** | Onboarding-ticket write tool with vendor-assessment expiry check | FR-026 |
 | **Could** | Eval dashboard page (otherwise the README table) | US6 |
 | **Won't (MVP)** | Auth, real connectors, multi-workflow, pending-approvals inbox | §3 non-goals |
 
@@ -225,16 +227,16 @@ Public repo with a live demo, published by Sunday evening; demo ≤ 2 min; READM
 |---|---|---|
 | **M0 Specs and fixtures** | Fri 13 Nov, night | Constitution, spec, PRD, data, golden set drafted ✅; validator passes ✅; committed to the repo ☐ |
 | **M1 Plan and tasks** | Sat 10:00 | `plan.md` with ADRs; `tasks.md` traced to FR IDs; `/speckit.analyze` clean |
-| **M2 Retrieval + fast eval runner** | Sat 13:00 | Ingestion and hybrid search work. **Tier-1 eval runner exists** (`eval:fast`, no judge model). Retrieval recall@5 ≥ 90% on GS-001–008 and GS-018–020 |
-| **M3 Graph and router** | Sat 17:00 | Graph traversal and router live. `eval:fast` adds route accuracy ≥ 85% (all 30 cases) and recall@5 on GS-009–016 and GS-021. **First baseline vs graphrag comparison** on multi-hop cases (recall@5 only; completeness comes with Tier 2) |
-| **M4 Agent and approval** | Sat 22:00 | MCP mock tools, confirmation gate, audit log, approval workflow (Vercel Workflows, or fallback by 22:00). `eval:fast` adds tool correctness ≥ 90% (GS-022–025), confirmation compliance 100%, safe behaviour 100% (GS-026–028) |
-| **M5 Judge evals, CI gate, observability** | Sun 12:00 (**feature freeze**) | **Tier-2** (`eval:full`): judge-scored groundedness, citation accuracy, completeness in both modes; 10 cases hand-checked. GitHub Actions gates Tier 1 on every push and Tier 2 on PRs to `main`. Langfuse traces supply latency and cost |
+| **M2 Retrieval + fast eval runner** | Sat 13:00 | Ingestion and hybrid search work. **Tier-1a eval runner exists** (`eval:fast`, no model calls). Retrieval recall@5 ≥ 90% on GS-001–008 and GS-018–020 |
+| **M3 Graph and router** | Sat 17:00 | Graph traversal and router live. Tier 1b (`eval:model`, temperature 0) adds route accuracy ≥ 85% (all 30 cases); `eval:fast` adds recall@5 on GS-009–016 and GS-021. **First baseline vs graphrag comparison** on multi-hop cases (recall@5 only; completeness comes with Tier 2) |
+| **M4 Agent and approval** | Sat 22:00 | MCP mock tools, confirmation gate, audit log, approval workflow (Vercel Workflows, or fallback by 22:00). `eval:fast` adds confirmation compliance 100% and the hook guard; `eval:model` adds tool correctness ≥ 90% (GS-022–025), safe behaviour 100% (GS-026–028) and clarify behaviour (GS-029–030) |
+| **M5 Judge evals, CI gate, observability** | Sun 12:00 (**feature freeze**) | **Tier-2** (`eval:full`): judge-scored groundedness, citation accuracy, completeness in both modes; 10 cases hand-checked; Tier 1b run 3 times to report variation. GitHub Actions gates Tier 1a on every push, and Tier 1b + Tier 2 on PRs to `main`. Langfuse traces supply latency and cost |
 | **M6 Deploy and docs** | Sun 16:00 | Vercel live URL; README with diagram, results table, limitations |
 | **M7 Launch** | Sun 19:00 | Demo video; LinkedIn post; repo pinned; Featured link added |
 
-**Evaluation is continuous, not a phase.** After every implemented task, run `eval:fast` (seconds, no judge cost) and don't start the next task while a previously passing case is failing. See [`evaluation/README.md`](../evaluation/README.md) for the tiers and how each metric is computed.
+**Evaluation is continuous, not a phase.** After every implemented task, run `eval:fast` (seconds, no model cost), plus `eval:model` on the milestone's cases once model behaviour is involved, and don't start the next task while a previously passing case is failing. See [`evaluation/README.md`](../evaluation/README.md) for the tiers and how each metric is computed.
 
-**Cut line if behind:** switch the approval workflow to the in-memory fallback (`APPROVAL_ENGINE=in-memory`) if Vercel Workflows isn't working by Sat 22:00 → drop the eval dashboard page (use the README table) → drop the UI baseline toggle (keep it in evals) → drop PII redaction (record it as a known limitation). Never cut: the approval gate, citations, the Tier-1 eval gate in CI. If the judge-scored Tier 2 runs out of time, publish Tier-1 results and state that judge scoring is pending.
+**Cut line if behind:** switch the approval workflow to the in-memory fallback (`APPROVAL_ENGINE=in-memory`) if Vercel Workflows isn't working by Sat 22:00 → drop the eval dashboard page (use the README table) → drop the UI baseline toggle (keep it in evals) → drop personal-name redaction (keep regex redaction; record name detection as a known limitation). Never cut: the approval gate, citations, regex PII redaction, the Tier-1a eval gate in CI. If the judge-scored Tier 2 runs out of time, publish Tier-1 results and state that judge scoring is pending.
 
 ### 10.2 Roadmap beyond the weekend
 | Phase | Scope | Exit criteria |
@@ -262,15 +264,6 @@ The MVP is cloud-neutral by design. The primary production target is **AWS with 
 | CI/CD | GitHub Actions with eval gate | GitHub Actions or CodePipeline: eval gate → CDK / Terraform deploy | GitHub Actions / Azure DevOps |
 
 **Why a hand-modelled graph, not managed GraphRAG, for policy logic.** Bedrock Knowledge Bases has a managed GraphRAG option on Neptune Analytics, but it builds the graph automatically from documents and doesn't support customising how the graph is built. Approval logic depends on exact, conditional edges (`requester=Contractor`, `classification=Restricted`), so we keep our own curated schema in Neptune Analytics for policy reasoning. Managed Knowledge Bases (vector, or managed GraphRAG) can still handle unstructured documents. The evals decide which approach wins for each question type.
-
----|---|
-| Markdown corpus | SharePoint / Confluence via Microsoft Graph connectors |
-| Neon pgvector + full-text search | Azure AI Search (hybrid + semantic ranker) |
-| Postgres edge tables | Cosmos DB for Apache Gremlin or Neo4j, if the graph grows beyond ~1M edges |
-| Mock MCP tools | MCP servers wrapping ServiceNow / Jira and Power Automate approvals |
-| No auth | Entra ID SSO; security trimming by document ACLs; Purview sensitivity labels |
-| Langfuse | Langfuse or Application Insights + OpenTelemetry |
-| Claude API | Claude via Microsoft Foundry or Amazon Bedrock, inside the enterprise boundary |
 
 ---
 
