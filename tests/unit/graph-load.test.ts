@@ -12,10 +12,15 @@ describe("graph loader (FR-002)", () => {
     ]);
   });
 
-  it("loads the real seed: 66 nodes, 121 edges, every relation valid, source_doc and condition kept", async () => {
+  it("loads the real seed: 66 nodes, 122 edges, every relation valid, source_doc and condition kept", async () => {
     const { nodes, edges } = await readGraphSeed();
     expect(nodes).toHaveLength(66);
-    expect(edges).toHaveLength(121);
+    expect(edges).toHaveLength(122);
+    expect(edges.find((e) => e.relation === "implemented_by")).toMatchObject({
+      source: "CTL-07",
+      target: "PROC-REVIEW",
+      source_doc: "PRC-019",
+    });
     expect(edges.every((e) => (RELATIONS as readonly string[]).includes(e.relation))).toBe(true);
     expect(
       edges.find((e) => e.source === "ROLE-CONTRACTOR" && e.target === "APR-PRIV"),
@@ -37,6 +42,6 @@ describe("graph loader (FR-002)", () => {
       path.join(dir, "edges.csv"),
       "source,relation,target,condition,source_doc\nA,likes,B,,\n",
     );
-    await expect(readGraphSeed(dir)).rejects.toThrow(/not one of the 15 relations/);
+    await expect(readGraphSeed(dir)).rejects.toThrow(/not one of the 16 relations/);
   });
 });

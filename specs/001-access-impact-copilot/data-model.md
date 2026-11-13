@@ -29,7 +29,7 @@ Postgres (Neon) with the `vector` extension. Every table includes `created_at ti
 
 `edges(id bigserial PK, source text FK→nodes, relation text, target text FK→nodes, condition text null, source_doc text FK)`. Indexes on `(source, relation)`, `(target, relation)` and `relation`.
 
-Validation: `relation` must be one of the 15 relations in `data/graph_seed/README.md`. `condition` is parsed as `key=value[|value]` (e.g. `classification=Confidential|Restricted`, `requester=Contractor`).
+Validation: `relation` must be one of the 16 relations in `data/graph_seed/README.md`. `condition` is parsed as `key=value[|value]` (e.g. `classification=Confidential|Restricted`, `requester=Contractor`).
 
 ## Runtime
 

@@ -120,3 +120,4 @@ INC-2026-031,led_to,POL-014,v2.1 max duration 180 to 90 days,INC-2026-031
 INC-2026-044,affects,SYS-DWH,,INC-2026-044
 INC-2026-044,led_to,CTL-08,export blocked over 1000 records without approval,INC-2026-044
 INC-2026-044,led_to,CTL-06,DLP alerting on large exports,INC-2026-044
+CTL-07,implemented_by,PROC-REVIEW,,PRC-019

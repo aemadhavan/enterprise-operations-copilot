@@ -28,6 +28,7 @@ Policy · Process · System · DataClass · Team · Person · Role · Approval �
 | affects | Incident → System | |
 | involved | Incident → Vendor | |
 | led_to | Incident → Control/Policy | Remediation |
+| implemented_by | Control → Process | The procedure that carries out the control (e.g. CTL-07 periodic access review → PROC-REVIEW, PRC-019) |
 
 ## Conditions
 `classification=Confidential|Restricted` means the edge applies when the target system's highest classification is either value. A system's highest classification is the max over its `stores` edges (POL-001 §3), and is precomputed in `nodes.csv` for convenience.

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Pool } from "@neondatabase/serverless";
 
-/** The 15 relations in data/graph_seed/README.md (FR-002). */
+/** The 16 relations in data/graph_seed/README.md (FR-002). */
 export const RELATIONS = [
   "governs",
   "protects",
@@ -19,6 +19,7 @@ export const RELATIONS = [
   "affects",
   "involved",
   "led_to",
+  "implemented_by",
 ] as const;
 export type Relation = (typeof RELATIONS)[number];
 
@@ -110,7 +111,9 @@ export async function readGraphSeed(dir = "data/graph_seed") {
   const edges = parseCsv(await readFile(path.join(dir, "edges.csv"), "utf8")).map(
     (r, i): GraphEdge => {
       if (!RELATIONS.includes(r.relation as Relation)) {
-        throw new Error(`Edge ${i + 2}: relation "${r.relation}" is not one of the 15 relations`);
+        throw new Error(
+          `Edge ${i + 2}: relation "${r.relation}" is not one of the ${RELATIONS.length} relations`,
+        );
       }
       if (!ids.has(r.source) || !ids.has(r.target)) {
         throw new Error(`Edge ${i + 2}: unknown node ${ids.has(r.source) ? r.target : r.source}`);
