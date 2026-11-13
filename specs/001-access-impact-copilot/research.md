@@ -56,7 +56,7 @@ Each item records a **Decision**, its **Rationale**, and the **Alternatives cons
 - **Alternatives:** OpenAI embeddings, which would add a third vendor.
 
 ## R-09 Graph traversal (FR-002, FR-005b)
-- **Decision:** `graph_query(mode, …)` uses one of three parameterised SQL templates: (1) a recursive CTE from `start_id` up to `max_hops` (≤ 4, default 2), with an optional relation allow-list; (2) a label filter with optional `classification` or edge `condition`; (3) a relation filter (e.g. all `led_to` edges). Each returns `{nodes, edges[] {source, relation, target, condition, source_doc}}`. Data-owner approval is resolved through the system's `data_owner` edge in code (`lib/policy/approvals.ts`), not by the model.
+- **Decision:** `graph_query(mode, …)` uses one of three parameterised SQL templates: (1) a recursive CTE from `start_id` up to `max_hops` (≤ 4, default 2), with an optional relation allow-list; (2) a label filter with optional `classification` or edge `condition`; (3) a relation filter (e.g. all `led_to` edges). Each returns `{nodes, edges[] {source, relation, target, condition, source_doc}}`. Data-owner approval is resolved through the system's `data_owner` edge in code (`lib/policy/approvals.ts`), not by the model. **Control evidence expansion (2026-11-14):** in every mode, when the result contains a `Control` node, its `implemented_by` edges are added one step further, regardless of `max_hops` (which stays 2 by default otherwise), so a control reached at the hop limit still brings in the procedure that carries it out (e.g. CTL-07 → PROC-REVIEW, PRC-019). Found by GS-009.
 - **Rationale:** Deterministic, cheap, and checked in Tier 1a against the GS-009 path from the seed README.
 - **Alternatives:** Letting the model write SQL (unsafe).
 

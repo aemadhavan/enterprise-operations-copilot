@@ -32,6 +32,14 @@ describe.skipIf(!enabled)("graph_query hero traversal, GS-009 (FR-005b)", () => 
     expect(edges.every((e) => typeof e.source_doc === "string")).toBe(true);
   });
 
+  it("expands CTL-07 one step to its procedure even at the 2-hop limit (R-09)", async () => {
+    const { nodes, edges } = await graphQuery({ mode: "node", start_id: "SYS-CRM", max_hops: 2 });
+    expect(edges.map(key)).toContain("CTL-07 -implemented_by-> PROC-REVIEW");
+    expect(nodes.find((n) => n.id === "PROC-REVIEW")?.source_doc).toBe("PRC-019");
+    // max_hops still bounds the ordinary walk: nothing beyond PROC-REVIEW is followed.
+    expect(edges.some((e) => e.source === "PROC-REVIEW")).toBe(false);
+  });
+
   it("node mode from ROLE-CONTRACTOR reaches the four approvals, prerequisites and named approvers", async () => {
     const { edges } = await graphQuery({ mode: "node", start_id: "ROLE-CONTRACTOR", max_hops: 2 });
     const got = new Set(edges.map(key));
@@ -78,9 +86,14 @@ describe.skipIf(!enabled)("graph_query hero traversal, GS-009 (FR-005b)", () => 
 
   it("relation mode: every led_to edge with its incident source_doc (GS-013)", async () => {
     const { edges } = await graphQuery({ mode: "relation", relation: "led_to" });
-    expect(edges.length).toBeGreaterThan(0);
-    expect(edges.every((e) => e.relation === "led_to")).toBe(true);
-    expect(new Set(edges.map((e) => e.source))).toEqual(new Set(["INC-2026-031", "INC-2026-044"]));
+    const ledTo = edges.filter((e) => e.relation === "led_to");
+    expect(ledTo.length).toBeGreaterThan(0);
+    expect(new Set(ledTo.map((e) => e.source))).toEqual(new Set(["INC-2026-031", "INC-2026-044"]));
+    // Control evidence expansion applies in every mode: led_to → CTL-07 brings its procedure.
+    const other = edges.filter((e) => e.relation !== "led_to");
+    expect(other.map((e) => `${e.source} -${e.relation}-> ${e.target}`)).toEqual([
+      "CTL-07 -implemented_by-> PROC-REVIEW",
+    ]);
   });
 
   it("rejects an invalid input (Zod re-validation)", async () => {

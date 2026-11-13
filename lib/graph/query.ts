@@ -50,9 +50,43 @@ async function nodesFor(ids: string[]): Promise<QNode[]> {
     FROM nodes WHERE id = ANY(${ids}::text[]) ORDER BY id`) as QNode[];
 }
 
-function withNodes(edges: QEdge[], extra: string[] = []) {
+const edgeKey = (e: QEdge) => `${e.source}|${e.relation}|${e.target}`;
+
+/**
+ * Control evidence expansion (R-09): add each result Control node's `implemented_by` edges,
+ * one step, regardless of max_hops. Pure, so it is unit-tested without a database.
+ * Returns the merged edges and the node IDs that still need fetching.
+ */
+export function expandControlEvidence(
+  result: GraphQueryResult,
+  implementedBy: QEdge[],
+): { edges: QEdge[]; newNodeIds: string[] } {
+  const controls = new Set(result.nodes.filter((n) => n.label === "Control").map((n) => n.id));
+  const have = new Set(result.edges.map(edgeKey));
+  const known = new Set(result.nodes.map((n) => n.id));
+  const added = implementedBy.filter(
+    (e) => e.relation === "implemented_by" && controls.has(e.source) && !have.has(edgeKey(e)),
+  );
+  return {
+    edges: [...result.edges, ...added],
+    newNodeIds: [...new Set(added.map((e) => e.target))].filter((id) => !known.has(id)),
+  };
+}
+
+async function withNodes(edges: QEdge[], extra: string[] = []): Promise<GraphQueryResult> {
   const ids = [...new Set([...extra, ...edges.flatMap((e) => [e.source, e.target])])];
-  return nodesFor(ids).then((nodes) => ({ nodes, edges }));
+  const base = { nodes: await nodesFor(ids), edges };
+  const controlIds = base.nodes.filter((n) => n.label === "Control").map((n) => n.id);
+  if (!controlIds.length) return base;
+  const implementedBy = (await sql`
+    SELECT source, relation, target, condition, source_doc FROM edges
+    WHERE relation = 'implemented_by' AND source = ANY(${controlIds}::text[])
+    ORDER BY source, target`) as QEdge[];
+  const expanded = expandControlEvidence(base, implementedBy);
+  return {
+    nodes: [...base.nodes, ...(await nodesFor(expanded.newNodeIds))],
+    edges: expanded.edges,
+  };
 }
 
 /**

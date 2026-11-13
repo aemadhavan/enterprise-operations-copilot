@@ -29,6 +29,8 @@ graph_query
 | { mode: "label"; label: NodeLabel; classification?: "Public"|"Internal"|"Confidential"|"Restricted"; condition?: string }
 | { mode: "relation"; relation: Relation; limit?: number }
   → { nodes: Node[]; edges: { source, relation, target, condition, source_doc }[] }
+  // Every mode: for each Control node in the result, its `implemented_by` edges (and target nodes)
+  // are added one extra step, regardless of max_hops.
 
 lookup_approvals { system_id: string; requester_type: "Employee"|"Contractor"|"Vendor"; access_level: "read"|"write"|"admin" }
   → { classification, chain: { seq, role, approver_name|null, source_doc }[], controls: { id, name, source_doc }[], prerequisites: {...}[] }
