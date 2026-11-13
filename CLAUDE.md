@@ -54,4 +54,5 @@ PoC, not a platform: no auth, no multi-tenancy, no real connectors. Feature free
 
 ## Commands
 - `python scripts/validate_seed.py` (Windows) / `python3 scripts/validate_seed.py` (macOS/Linux): validate the fixtures (must pass)
+- After a fresh clone, create `.specify/feature.json` containing `{"feature_directory":"specs/001-access-impact-copilot"}` (it's gitignored by Spec Kit; the speckit scripts fail without it).
 - Add the build, dev, ingest and eval commands here once scaffolded.
