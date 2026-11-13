@@ -225,18 +225,24 @@ Public repo with a live demo, published by Sunday evening; demo ≤ 2 min; READM
 ### 10.1 Weekend milestones (Melbourne time)
 | Milestone | Due | Exit criteria |
 |---|---|---|
-| **M0 Specs and fixtures** | Fri 13 Nov, night | Constitution, spec, PRD, data, golden set drafted ✅; validator passes ✅; committed to the repo ☐ |
-| **M1 Plan and tasks** | Sat 10:00 | `plan.md` with ADRs; `tasks.md` traced to FR IDs; `/speckit.analyze` clean |
-| **M2 Retrieval + fast eval runner** | Sat 13:00 | Ingestion and hybrid search work. **Tier-1a eval runner exists** (`eval:fast`, no model calls). Retrieval recall@5 ≥ 90% on GS-001–008 and GS-018–020 |
-| **M3 Graph and router** | Sat 17:00 | Graph traversal and router live. Tier 1b (`eval:model`, fixed models and effort, no sampling parameters) adds route accuracy ≥ 85% (all 30 cases); `eval:fast` adds recall@5 on GS-009–016 and GS-021. **First baseline vs graphrag comparison** on multi-hop cases (recall@5 only; completeness comes with Tier 2) |
-| **M4 Agent and approval** | Sat 22:00 | MCP mock tools, confirmation gate, audit log, approval workflow (Vercel Workflows, or fallback by 22:00). `eval:fast` adds confirmation compliance 100% and the hook guard; `eval:model` adds tool correctness ≥ 90% (GS-022–025), safe behaviour 100% (GS-026–028) and clarify behaviour (GS-029–030) |
-| **M5 Judge evals, CI gate, observability** | Sun 12:00 (**feature freeze**) | **Tier-2** (`eval:full`): judge-scored groundedness, citation accuracy, completeness in both modes; 10 cases hand-checked; Tier 1b run 3 times to report variation. GitHub Actions gates Tier 1a on every push, and Tier 1b + Tier 2 on PRs to `main`. Langfuse traces supply latency and cost |
-| **M6 Deploy and docs** | Sun 16:00 | Vercel live URL; README with diagram, results table, limitations |
-| **M7 Launch** | Sun 19:00 | Demo video; LinkedIn post; repo pinned; Featured link added |
+Scope is the **v0.1 weekend slice**: the P0 tasks in [`tasks.md`](../specs/001-access-impact-copilot/tasks.md). Times assume about 40% of the human-scale task estimates (Claude Code writes the code, you review): ≈ 17.8 h of work in total, versus ≈ 44.5 h at human pace. Everything else ships in v0.2 (§10.2).
 
-**Evaluation is continuous, not a phase.** After every implemented task, run `eval:fast` (seconds, no model cost), plus `eval:model` on the milestone's cases once model behaviour is involved, and don't start the next task while a previously passing case is failing. See [`evaluation/README.md`](../evaluation/README.md) for the tiers and how each metric is computed.
+| Milestone | Due | Exit criteria (v0.1) |
+|---|---|---|
+| **M0 Specs and fixtures** | Fri 13 Nov, night | Constitution, spec, PRD, data, golden set ✅; validator passes ✅; committed ✅ |
+| **M1 Plan and tasks** | Sat 10:30 | `plan.md` with ADRs; `tasks.md` traced to FR IDs with P0 slice; `/speckit.analyze` with no critical issues ✅ |
+| **Setup + Foundational** | Sat ≈ 13:00 | App scaffold, migrations, model client, regex redaction (≈ 2.4 h) |
+| **M2 Retrieval + Tier-1a runner** | Sat ≈ 17:00 | Ingestion and hybrid search work. **Tier-1a eval runner exists** (`eval:fast`, no chat-model calls). Retrieval recall@5 ≥ 90% on GS-001–008 and GS-018–020. `text`-route answers with citations and confidence (≈ 3.9 h) |
+| **M3 Graph, router, one chat page** | Sat ≈ 21:15 | Graph traversal (three seed modes) reproduces the GS-009 hero path; router with code-computed risk; agent loop; one chat page with evidence panel answers GS-001 and GS-009 (≈ 4.4 h). Route accuracy (Tier 1b) moves to v0.2 |
+| **M4 core: governed action** | Sun ≈ 12:40 (start 07:00) | Test-first safety gates pass (confirmation gate, idempotency, hook guard); `check_policy`, `propose_access_request`, draft card with SoD warning; confirm with idempotency + policy re-check; audit log; refusals; **in-memory** approval timeline with the Simulated approver panel; Tier-1a confirmation compliance 100% (≈ 5.6 h) |
+| **M5–M6 Trace, CI, deploy, README** | Sun ≈ 14:00 | Minimal Langfuse trace per request; GitHub Actions runs Tier 1a on every push; Vercel live URL; README with diagram, Tier-1a results as measured, limitations and the v0.2 list (≈ 1.5 h). **Feature freeze at this point** |
+| **M7 Publish v0.1** | Sun 19:00 | Tag `v0.1.0`; live link in README; repo pinned. Demo GIF and LinkedIn post if the afternoon slack allows, otherwise v0.2 |
 
-**Cut line if behind:** switch the approval workflow to the in-memory fallback (`APPROVAL_ENGINE=in-memory`) if Vercel Workflows isn't working by Sat 22:00 → drop the eval dashboard page (use the README table) → drop the UI baseline toggle (keep it in evals) → drop personal-name redaction (keep regex redaction; record name detection as a known limitation). Never cut: the approval gate, citations, regex PII redaction, the Tier-1a eval gate in CI. If the judge-scored Tier 2 runs out of time, publish Tier-1 results and state that judge scoring is pending.
+**M2 decision rule (keep):** when the M2 gate (tasks.md T018) passes, compare the clock with the estimate. Setup → M2 should take ≈ 6.3 h at agent pace. If it took more than 1.5× that (≈ 9.5 h, i.e. past about 20:00 on Saturday), cut v0.1 to M2 + M3 (cited lookups and graph answers with Tier-1a CI), move M4 core to v0.2, and say so in the README.
+
+**Evaluation is continuous, not a phase.** After every implemented task, run `eval:fast` (seconds, no chat-model cost) and don't start the next task while a previously passing case is failing. `eval:model` (Tier 1b) and `eval:full` (Tier 2) arrive in v0.2. See [`evaluation/README.md`](../evaluation/README.md) for the tiers and how each metric is computed.
+
+**Cut line if behind (v0.1):** drop the Simulated approver panel's polish (keep the guarded route) → simplify the evidence panel to citations and confidence → drop the audit log page (keep the table and API) → apply the M2 decision rule. Never cut: the confirmation gate and its tests, idempotency, policy re-check, citations, regex PII redaction, refusals, the minimal trace, the Tier-1a eval gate in CI.
 
 ### 10.2 Roadmap beyond the weekend
 | Phase | Scope | Exit criteria |
