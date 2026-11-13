@@ -9,9 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "1.1.2",
+    "@anthropic-ai/sdk": "1.8.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@neondatabase/serverless": "1.2.0",
+    "dotenv": "18.0.10",
+    "gray-matter": "4.0.3",
+    "langfuse": "3.39.2",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "voyageai": "0.6.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -19,7 +28,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "typescript": "^5"
+    "tsx": "4.23.15",
+    "typescript": "^5",
+    "vitest": "5.1.0"
   },
   "packageManager": "pnpm@11.21.0",
   "engines": {
