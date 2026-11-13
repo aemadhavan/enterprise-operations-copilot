@@ -88,5 +88,4 @@ export async function upsertDocuments(pool: Pool, loaded: LoadedDocument[]): Pro
 
 /** Text sent to the embedding model: document title and section path give the chunk context. */
 export const embeddingInput = (title: string, section: string, text: string) =>
-  `${title} > ${section}
-${text}`;
+  `${title} > ${section}\n${text}`;
