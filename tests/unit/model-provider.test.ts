@@ -80,4 +80,22 @@ describe("model provider (FR-025, ADR-010)", () => {
     });
     expect(create.mock.calls[0][0].output_config).toEqual({ format, effort: "medium" });
   });
+
+  it("agent on Anthropic uses the beta endpoint with fallbacks: default; router does not", async () => {
+    const config = parseConfig({});
+    const create = vi.fn(async (body: Record<string, unknown>) => ({ body }));
+    const betaCreate = vi.fn(async (body: Record<string, unknown>) => ({ body }));
+    const factory: SdkFactory = {
+      anthropic: () => ({ messages: { create }, beta: { messages: { create: betaCreate } } }),
+      bedrock: () => ({ messages: { create } }),
+    };
+    await createClient("agent", { config, factory }).create({ max_tokens: 10, messages: [] });
+    expect(betaCreate.mock.calls[0][0]).toMatchObject({
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+    });
+    await createClient("router", { config, factory }).create({ max_tokens: 10, messages: [] });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][0]).not.toHaveProperty("fallbacks");
+  });
 });

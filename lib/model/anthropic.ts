@@ -4,6 +4,8 @@ import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
 /** The slice of the SDK surface we use; both clients expose `messages.create`. */
 export interface MessagesSdk {
   messages: { create(body: never): Promise<unknown> };
+  /** Beta surface, used for server-side refusal fallbacks (Anthropic API only). */
+  beta?: { messages: { create(body: never): Promise<unknown> } };
 }
 
 export interface SdkFactory {

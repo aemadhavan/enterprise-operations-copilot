@@ -15,6 +15,14 @@ export const ROLE_EFFORT: Record<ModelRole, Effort> = {
   judge: "medium",
 };
 
+/**
+ * Server-side refusal fallbacks (R-05): on the Anthropic API the agent and judge send
+ * `fallbacks: "default"` through the beta endpoint. Haiku 5.5 has no server-side fallback
+ * (a router refusal maps to `unsafe`); Bedrock needs the client middleware (T068).
+ */
+export const FALLBACK_BETA = "server-side-fallback-2026-07-01";
+const USES_FALLBACKS: Record<ModelRole, boolean> = { router: false, agent: true, judge: true };
+
 /** Sampling params are never sent (R-03); the API also rejects them on these models. */
 const SAMPLING_PARAMS = ["temperature", "top_p", "top_k"] as const;
 
@@ -76,6 +84,11 @@ export function createClient(
       for (const p of SAMPLING_PARAMS) delete body[p];
       body.model = model;
       body.output_config = { ...(params.output_config ?? {}), effort };
+      if (provider === "anthropic" && USES_FALLBACKS[role] && sdk.beta) {
+        body.betas = [FALLBACK_BETA];
+        body.fallbacks = "default";
+        return (await sdk.beta.messages.create(body as never)) as Anthropic.Message;
+      }
       return (await sdk.messages.create(body as never)) as Anthropic.Message;
     },
   };
