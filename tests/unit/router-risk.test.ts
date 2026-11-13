@@ -13,7 +13,10 @@ const risk = (intent: Intent, text: string) => computeRisk(intent, resolveEntiti
 
 describe("entity resolution", () => {
   it("resolves systems and data classes by name and ID, case-insensitively", () => {
-    const ids = (t: string) => resolveEntities(t, nodes).map((n) => n.id).sort();
+    const ids = (t: string) =>
+      resolveEntities(t, nodes)
+        .map((n) => n.id)
+        .sort();
     expect(ids("Contractor read access to atlas crm")).toEqual(["ROLE-CONTRACTOR", "SYS-CRM"]);
     expect(ids("Who owns SYS-BILL?")).toEqual(["SYS-BILL"]);
     expect(ids("max duration for customer PII")).toEqual(["DC-CUST-PII"]);
