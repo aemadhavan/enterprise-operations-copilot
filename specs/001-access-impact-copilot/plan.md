@@ -12,7 +12,7 @@ A Next.js app on Vercel that answers access-governance questions about the ficti
 
 **Language/Version**: TypeScript 5.x on Node.js 22 LTS. Python 3 only for the existing `scripts/validate_seed.py`.
 
-**Primary Dependencies**: Next.js 15 (App Router), `dotenv` (scripts), `@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk` (`AnthropicBedrockMantle`), `@modelcontextprotocol/sdk` (in-process server + client over an in-memory transport), `zod`, `@neondatabase/serverless`, `voyageai` (embeddings; Bedrock Titan V2 as the alternative), `workflow` (Vercel Workflow SDK), `langfuse`, `gray-matter` (front-matter parsing).
+**Primary Dependencies**: Next.js 16 (App Router; current stable via `create-next-app@latest`, see ADR-001), `dotenv` (scripts), `@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk` (`AnthropicBedrockMantle`), `@modelcontextprotocol/sdk` (in-process server + client over an in-memory transport), `zod`, `@neondatabase/serverless`, `voyageai` (embeddings; Bedrock Titan V2 as the alternative), `workflow` (Vercel Workflow SDK), `langfuse`, `gray-matter` (front-matter parsing).
 
 **Storage**: Neon Postgres with the `vector` extension. Tables: `documents`, `chunks` (tsvector + vector(1024)), `nodes`, `edges`, `drafts`, `access_requests`, `onboarding_tickets`, `approval_steps`, `audit_log` (append-only). See [data-model.md](./data-model.md).
 
@@ -38,7 +38,7 @@ All unknowns are resolved in [research.md](./research.md). None remain marked NE
 |---|---|---|---|
 | I. Grounded or Silent | The answer schema has structured claims, each with a citation (doc §, or an edge with `source_doc`). Confidence is computed in code (FR-006). `state_gap` happens when no evidence passes. Effective-dated docs outrank `MTG-*` via `doc_type` metadata (FR-008). | ✅ | ✅ |
 | II. Human-in-the-Loop for Every Write | Write tools are never executed inside the agent loop. The loop can only *propose* a draft. Execution happens only at `POST /api/drafts/{id}/confirm`, a separate request driven by the UI. A DB unique key on `draft_id` makes it idempotent. Hook resumption is only possible at `/api/simulated-approver`, which rejects agent-context calls. The policy check runs before the draft is created. | ✅ | ✅ |
-| III. Evals Are the Acceptance Tests | Tier 1a is built in M2. Tier 1b is built in M3. Tier 2 is built in M5. CI gates per spec §6. Case filters (FR-022). "No new task while a passing case fails" is enforced by comparing results to the last-passing snapshot. | ✅ | ✅ |
+| III. Evals Are the Acceptance Tests | Tier 1a is built in M2. Tier 1b (`eval:model`) and Tier 2 (`eval:full`) are v0.2 (PRD §10.1). CI gates per spec §6. Case filters (FR-022). "No new task while a passing case fails" is enforced by comparing results to the last-passing snapshot. | ✅ | ✅ |
 | IV. Observable by Default | A Langfuse trace per request covers intent, risk, route, retrievals, tool calls, approvals, answer, latency, tokens and cost. `audit_log` is append-only: `REVOKE UPDATE, DELETE` plus a trigger. | ✅ | ✅ |
 | V. Least Privilege and Data Minimisation | `.env.example` only; `.env` and `.env.local` gitignored. Regex redaction is applied before every trace or log write. Tools declare `risk` (`read` | `propose` | `write`) and `allowed_roles`. | ✅ | ✅ |
 | VI. Spec Is the Source of Truth | Every task maps to an FR. The "temperature 0" conflict (R-03) was resolved by amending the spec first (FR-020/FR-021, §6). | ✅ | ✅ |
@@ -51,7 +51,7 @@ All unknowns are resolved in [research.md](./research.md). None remain marked NE
 
 | ADR | Decision | Rejected alternative, and why |
 |---|---|---|
-| 001 App | Next.js 15 App Router on Vercel, in TypeScript | Separate API + SPA: two deploys, no benefit at this size |
+| 001 App | Next.js 16 App Router on Vercel, in TypeScript. Originally written as 15; no 15-specific dependency, so T001 uses the current stable (16.4.6 on 2026-11-14) | Separate API + SPA: two deploys, no benefit at this size |
 | 002 Data | Neon Postgres: pgvector + `tsvector` for hybrid retrieval; graph in `nodes`/`edges`, traversed with recursive CTEs | Neo4j or Neptune: 66 nodes don't justify a second datastore |
 | 003 Agent runtime | Hand-written tool-use loop on `@anthropic-ai/sdk`; Bedrock via `AnthropicBedrockMantle`; `MODEL_PROVIDER` selects (FR-025) | Claude Agent SDK, which needs a persistent sandbox (bad fit for Vercel); the SDK Tool Runner, because the gate is clearer in our own loop |
 | 004 Tools | In-process MCP server (`@modelcontextprotocol/sdk`, in-memory transport); each tool declares `risk` (`read` | `propose` | `write`) and `allowed_roles`; the agent client allow-lists `read` + `propose` | stdio child process, which doesn't work on serverless |

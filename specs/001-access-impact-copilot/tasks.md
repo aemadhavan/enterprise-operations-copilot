@@ -14,15 +14,15 @@
 
 ---
 
-## Phase 1: Setup (M1 tail, Sat ≤ 10:30)
+## Phase 1: Setup (Sat ≈ 13:00, with Foundational)
 
-- [ ] T001 **P0** Scaffold Next.js 15 App Router + TypeScript (strict) with pnpm, Node 22 engines field, `app/` and `lib/` folders per plan.md in `package.json`, `tsconfig.json`, `next.config.ts` — ADR-001
+- [ ] T001 **P0** Scaffold Next.js (current stable from `create-next-app@latest`, 16.x) App Router + TypeScript (strict) with pnpm, Node 22 engines field, `app/` and `lib/` folders per plan.md in `package.json`, `tsconfig.json`, `next.config.ts` — ADR-001
 - [ ] T002 [P] **P0** Add dependencies pinned with a committed lockfile: `@anthropic-ai/sdk`, `@anthropic-ai/bedrock-sdk`, `@modelcontextprotocol/sdk`, `zod`, `@neondatabase/serverless`, `voyageai`, `langfuse`, `gray-matter`, `dotenv`, `vitest`, `tsx` in `package.json` — ADR-001–ADR-007, ADR-010, PRD §8.1 LLM03
 - [ ] T003 [P] **P0** Configure Vitest (unit + integration projects, `tests/` roots) and ESLint/Prettier in `vitest.config.ts`, `eslint.config.mjs` — Constitution III
 - [ ] T004 [P] **P0** Create typed env loader: Zod-validated config for `MODEL_PROVIDER`, `ROUTER_MODEL`, `ANTHROPIC_MODEL`, `JUDGE_MODEL`, `BEDROCK_*`, `EMBEDDING_*`, `VOYAGE_API_KEY`, `DATABASE_URL`, `LANGFUSE_*`, `APPROVAL_ENGINE`, `SLA_TIME_SCALE_SECONDS_PER_BUSINESS_DAY`, demo caps; scripts call `dotenv.config({ path: '.env.local' })` in `lib/config.ts` and `scripts/_env.ts` — FR-025, ADR-007, ADR-010, Constitution V
 - [ ] T005 [P] **P0** Add package scripts `dev`, `build`, `test`, `db:migrate`, `ingest`, `eval:fast`, `eval:model`, `eval:full`, `validate` (wraps `python scripts/validate_seed.py`) in `package.json`; list them in the CLAUDE.md Commands section — FR-018–FR-022
 
-## Phase 2: Foundational (blocks every milestone)
+## Phase 2: Foundational (Sat ≈ 13:00; blocks every milestone)
 
 - [ ] T006 **P0** Write SQL migration 001 for knowledge tables: `documents` (doc_id PK, title, doc_type, version, owner, source_system, effective_date date null, is_authoritative bool = `doc_type <> 'meeting'`, content_hash), `chunks` (doc_id FK, section, text, `tsv` tsvector GIN, `embedding vector(1024)` HNSW cosine, embedding_model), `nodes`, `edges` with the indexes in data-model.md, in `lib/db/migrations/001_knowledge.sql` — FR-001, FR-002, ADR-002
 - [ ] T007 **P0** Write migration runner (ordered `*.sql`, `schema_migrations` table) and Neon client wrapper in `scripts/migrate.ts` and `lib/db/client.ts` — ADR-002
@@ -31,7 +31,7 @@
 
 ---
 
-## Phase 3: M2 Retrieval + Tier-1a eval runner (Sat 13:00) · US1 🎯 MVP
+## Phase 3: M2 Retrieval + Tier-1a eval runner (Sat ≈ 17:00) · US1 🎯 MVP
 
 **Goal**: ingest the corpus, get hybrid search working, and have the Tier-1a runner gate recall@5, all before any UI.
 **Independent test**: `pnpm eval:fast --cases GS-001..GS-008,GS-018..GS-020` gives recall@5 ≥ 90% and exit code 0.
@@ -57,7 +57,7 @@
 
 ---
 
-## Phase 4: M3 Graph + router + first chat UI (Sat 17:00) · US1, US2, US6
+## Phase 4: M3 Graph + router + first chat UI (Sat ≈ 21:15) · US1, US2, US6
 
 **Goal**: graph traversal, router and a minimal chat UI live. Route accuracy is gated, and the first baseline vs graphrag comparison is recorded.
 **Independent test**: `pnpm eval:fast --cases GS-009..GS-016,GS-021` (GS-009 path matches the seed README), then `pnpm eval:model`, which needs route accuracy ≥ 85% on all 30 cases. GS-001 and GS-009 answer in the browser.
@@ -80,7 +80,7 @@
 
 ---
 
-## Phase 5: M4 Agent actions, confirmation gate, approval workflow (Sat 22:00) · US3, US4, US5
+## Phase 5: M4 Agent actions, confirmation gate, approval workflow (Sun ≈ 12:40, start 07:00) · US3, US4, US5
 
 **Goal**: drafts → action confirmation → mock write → audit → approval workflow, plus safety and clarify behaviour.
 **Independent test**: `pnpm eval:fast --category tool_selection` (confirmation compliance 100%, hook guard) and `pnpm eval:model --cases GS-022..GS-030`.
@@ -118,7 +118,7 @@
 
 ---
 
-## Phase 6: M5 Judge evals, CI gate, observability (Sun 12:00, feature freeze) · US6
+## Phase 6: M5 Judge evals, CI gate, observability (Sun ≈ 14:00 with M6, feature freeze; judge evals are v0.2) · US6
 
 **Goal**: Tier 2 in both modes, CI gates, and Langfuse traces with latency and cost.
 **Independent test**: `pnpm eval:full --mode both`, then `pnpm eval:model --runs 3`, with CI green.
@@ -140,7 +140,7 @@
 
 ---
 
-## Phase 7: M6 Deploy and docs (Sun 16:00)
+## Phase 7: M6 Deploy and docs (Sun ≈ 14:00, feature freeze)
 
 - [ ] T071 **P0** Deploy to Vercel: env vars, Neon production branch, run migrate + ingest, smoke the hero flow (quickstart.md walkthrough) — ADR-001
 - [ ] T072 [P] **P0** Write README: one-liner, demo GIF placeholder, live link, problem, architecture diagram, results table (as measured; Tier 1a only in v0.1, Tier 1b/2 marked "v0.2"), governance, limitations (incl. any T050 fallback), quickstart, roadmap in `README.md` — PRD §13
