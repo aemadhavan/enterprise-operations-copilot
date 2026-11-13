@@ -27,7 +27,7 @@
 - [X] T006 **P0** Write SQL migration 001 for knowledge tables: `documents` (doc_id PK, title, doc_type, version, owner, source_system, effective_date date null, is_authoritative bool = `doc_type <> 'meeting'`, content_hash), `chunks` (doc_id FK, section, text, `tsv` tsvector GIN, `embedding vector(1024)` HNSW cosine, embedding_model), `nodes`, `edges` with the indexes in data-model.md, in `lib/db/migrations/001_knowledge.sql` — FR-001, FR-002, ADR-002
 - [X] T007 **P0** Write migration runner (ordered `*.sql`, `schema_migrations` table) and Neon client wrapper in `scripts/migrate.ts` and `lib/db/client.ts` — ADR-002
 - [X] T008 [P] **P0** Implement model provider interface `createClient(role: 'router'|'agent'|'judge')` returning an Anthropic client with the role's model ID and explicit effort (router `low`, agent `medium`, judge `medium`); no sampling params (R-01, R-03) in `lib/model/index.ts`, `lib/model/anthropic.ts`, with unit tests for role → model ID/effort mapping, `MODEL_PROVIDER` selection and "no sampling params sent" in `tests/unit/model-provider.test.ts` — FR-025, ADR-010
-- [ ] T009 [P] **P0** Implement PII redaction (regex: email, AU/intl phone, ID-like `\b[A-Z]{2,5}-?\d{4,}\b` with `AR-`/`TKT-`/doc-ID allow-list, 13–19-digit card-like numbers) in `lib/observability/redact.ts` with unit tests in `tests/unit/redact.test.ts` — FR-017 (Must)
+- [X] T009 [P] **P0** Implement PII redaction (regex: email, AU/intl phone, ID-like `\b[A-Z]{2,5}-?\d{4,}\b` with `AR-`/`TKT-`/doc-ID allow-list, 13–19-digit card-like numbers) in `lib/observability/redact.ts` with unit tests in `tests/unit/redact.test.ts` — FR-017 (Must)
 
 ---
 
