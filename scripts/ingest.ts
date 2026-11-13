@@ -1,8 +1,10 @@
-// Ingest: documents → chunks → embeddings (FR-001). Idempotent: unchanged documents are
-// skipped and only chunks without an embedding are embedded. Graph seed loading is added in T023.
+// Ingest: documents → chunks → embeddings (FR-001), then the graph seed → nodes/edges (FR-002).
+// Idempotent: unchanged documents are skipped, only chunks without an embedding are embedded,
+// and the graph tables are replaced from the seed in one transaction.
 import "./_env";
 import { getConfig } from "@/lib/config";
 import { closePool, getPool } from "@/lib/db/client";
+import { loadGraph, readGraphSeed } from "@/lib/graph/load";
 import { assertEmbeddingModel, createEmbedder, toVectorLiteral } from "@/lib/retrieval/embed";
 import { embeddingInput, loadDocuments, upsertDocuments } from "@/lib/retrieval/ingest";
 
@@ -55,6 +57,9 @@ async function main() {
     }
   }
   console.log(`Embedded: ${pending.length} chunks with ${config.EMBEDDING_MODEL}`);
+
+  const graph = await loadGraph(pool, await readGraphSeed());
+  console.log(`Graph: ${graph.nodes} nodes, ${graph.edges} edges`);
 
   const { rows } = await pool.query<{ docs: string; chunks: string; embedded: string }>(
     `SELECT (SELECT count(*) FROM documents) AS docs, (SELECT count(*) FROM chunks) AS chunks,
