@@ -37,7 +37,7 @@
 **Independent test**: `pnpm eval:fast --cases GS-001..GS-008,GS-018..GS-020` gives recall@5 ≥ 90% and exit code 0.
 
 ### Minimal ingestion and hybrid search
-- [ ] T010 [US1] **P0** Implement document ingest: parse front matter with gray-matter, chunk by `##`/`###` headings keeping `section` as a heading path (e.g. `3. Requirements > 3.4`), upsert `documents` + `chunks` with content_hash in `lib/retrieval/ingest.ts` — FR-001
+- [X] T010 [US1] **P0** Implement document ingest: parse front matter with gray-matter, chunk by `##`/`###` headings keeping `section` as a heading path (e.g. `3. Requirements > 3.4`), upsert `documents` + `chunks` with content_hash in `lib/retrieval/ingest.ts` — FR-001
 - [ ] T011 [P] [US1] **P0** Implement embeddings: Voyage `voyage-3.5` 1024-d (`input_type` document|query), Titan V2 1024-d when `EMBEDDING_PROVIDER=bedrock`; fail ingest if stored `embedding_model` ≠ configured; on-disk query cache in `evaluation/cache/` in `lib/retrieval/embed.ts` — ADR-007, R-08
 - [ ] T012 [US1] **P0** Wire `scripts/ingest.ts` (documents → chunks → embeddings; idempotent re-run) — FR-001
 - [ ] T013 [US1] **P0** Implement hybrid search: `websearch_to_tsquery('english')` + `ts_rank_cd` top 20, pgvector cosine top 20, RRF k=60, return ranked chunks with doc metadata in `lib/retrieval/hybrid.ts` — FR-004, R-07
