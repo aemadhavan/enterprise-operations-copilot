@@ -69,8 +69,8 @@ describe.skipIf(!enabled)("confirmation gate — no execution without confirmati
                 },
               },
             ],
-            usage: { input_tokens: 120, output_tokens: 60 } as Anthropic.Usage,
-          };
+            usage: { input_tokens: 120, output_tokens: 60 },
+          } as unknown as Anthropic.Message;
         }
         return {
           id: "msg_gs022_2",
@@ -92,8 +92,8 @@ describe.skipIf(!enabled)("confirmation gate — no execution without confirmati
               }),
             },
           ],
-          usage: { input_tokens: 200, output_tokens: 80 } as Anthropic.Usage,
-        };
+          usage: { input_tokens: 200, output_tokens: 80 },
+        } as unknown as Anthropic.Message;
       },
     };
 
