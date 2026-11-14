@@ -6,6 +6,7 @@ import { createConfirmClient } from "@/lib/mcp/client";
 import type { ConfirmationEvent } from "@/lib/mcp/registry";
 import { createMcpServer } from "@/lib/mcp/server";
 import { writeTools } from "@/lib/mcp/tools/write";
+import { getApprovalEngine } from "@/lib/workflow/in-memory";
 
 export interface AccessRequestSubmittedEvent {
   type: "access_request.submitted";
@@ -117,6 +118,7 @@ export async function POST(
     };
 
     if (!res.idempotent_replay) {
+      await getApprovalEngine().start(event);
       await emitSubmitted(event);
     }
 
