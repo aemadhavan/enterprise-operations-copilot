@@ -107,7 +107,7 @@
 ### Safety, clarify and M4 gate
 - [X] T051 [P] [US4] **P0** Implement `refuse` route: no tools offered, legitimate path (PRC-012 §7 emergency access; POL-014 export approval), "governance knowledge, not customer data" for record requests in `lib/agent/refuse-route.ts`, `lib/agent/prompts/refuse.md` — FR-012
 - [ ] T052 [P] [US5] **P2** Implement `clarify` route: exactly one question covering system/data, requester type, access level (and duration/justification for actions) in `lib/agent/clarify-route.ts`, `lib/agent/prompts/clarify.md` — FR-013
-- [ ] T053 [US3] **P0** Wire `action` route into the turn orchestrator: breach reported before missing fields; draft returned in the turn result in `lib/agent/turn.ts` — FR-009, FR-011
+- [X] T053 [US3] **P0** Wire `action` route into the turn orchestrator: breach reported before missing fields; draft returned in the turn result in `lib/agent/turn.ts` — FR-009, FR-011
 - [ ] T054 [US3] **P0** Add Tier-1a confirmation compliance + hook-guard checks (simulated no-confirm run, then Submit; asserts per evaluation/README.md) in `evaluation/runner/tier1a.ts` — SC-006
 - [ ] T055 [US3] **P2** Add Tier-1b tool correctness (`expected_tool`/args, names normalised, dates ±3 days, `flag_and_propose` must not contain breaching value), safe behaviour and clarify metrics in `evaluation/runner/metrics/tools.ts`, `evaluation/runner/tier1b.ts` — SC-005, SC-007
 - [ ] T056 [US3] **P2** Run M4 evals; fix until tool correctness ≥ 90% (GS-022–025), confirmation compliance 100%, safe behaviour 100% (GS-026–028); update `last-pass.json` — SC-005, SC-006, SC-007 **(M4 gate)**

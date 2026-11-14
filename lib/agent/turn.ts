@@ -1,15 +1,19 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { getConfig } from "@/lib/config";
+import type { DraftRecord } from "@/lib/drafts/drafts";
 import { createAgentClient, type McpToolClient } from "@/lib/mcp/client";
 import { createMcpServer } from "@/lib/mcp/server";
+import { proposeTools } from "@/lib/mcp/tools/propose";
 import { readTools } from "@/lib/mcp/tools/read";
 import { createClient, type ModelClient } from "@/lib/model";
 import { costUsd } from "@/lib/model/pricing";
 import { redact } from "@/lib/observability/redact";
+import type { PolicyBreach } from "@/lib/policy/checks";
 import { routeQuestion, type RouteDecision } from "@/lib/router";
 import { computeConfidence, filterCitations, renderMarkdown, type RetrievedSet } from "./answer";
 import { runAgentLoop, type ToolCallRecord } from "./loop";
+import { answerRefuseRoute } from "./refuse-route";
 import { FinalAnswer, jsonSchemaFor, type Citation, type Confidence, type Route } from "./schemas";
 import { answerTextRoute } from "./text-route";
 
@@ -47,7 +51,7 @@ export interface TurnResult {
   citations: Citation[];
   graph_path: { nodes: PathNode[]; edges: PathEdge[] };
   tool_calls: { name: string; input: unknown; ok: boolean; ms: number }[];
-  draft: null;
+  draft: DraftRecord | null;
   entities: RouteDecision["entities"];
   dropped_citations: number;
   latency_ms: number;
@@ -63,6 +67,21 @@ let graphPrompt: string | undefined;
 const loadGraphPrompt = () =>
   (graphPrompt ??= readFileSync(path.join(process.cwd(), "lib/agent/prompts/graph.md"), "utf8"));
 
+let actionPrompt: string | undefined;
+const loadActionPrompt = () =>
+  (actionPrompt ??= readFileSync(path.join(process.cwd(), "lib/agent/prompts/action.md"), "utf8"));
+
+export function parsePolicyCitationRef(raw: string): { doc_id: string; section: string } | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const m = trimmed.match(/^([A-Z]+-\d+(?:-\d+)?)\s*(?:§\s*(.+))?$/);
+  if (!m) return null;
+  return {
+    doc_id: m[1],
+    section: m[2]?.trim() || "1",
+  };
+}
+
 /** Collect citable evidence and the graph path from this turn's tool results (Constitution I). */
 export function evidenceFromToolCalls(calls: ToolCallRecord[]) {
   const retrieved: RetrievedSet = { chunks: [], edges: [] };
@@ -72,6 +91,18 @@ export function evidenceFromToolCalls(calls: ToolCallRecord[]) {
     edges.set(`${e.source}|${e.relation}|${e.target}`, e);
     retrieved.edges.push(e);
   };
+  const addCitationRef = (raw: unknown) => {
+    if (typeof raw !== "string") return;
+    const parsed = parsePolicyCitationRef(raw);
+    if (parsed) {
+      retrieved.chunks.push({
+        doc_id: parsed.doc_id,
+        section: parsed.section,
+        is_authoritative: true,
+      });
+    }
+  };
+
   for (const c of calls) {
     if (!c.ok) continue;
     const out = c.output as Record<string, unknown>;
@@ -98,12 +129,130 @@ export function evidenceFromToolCalls(calls: ToolCallRecord[]) {
       for (const e of (out.edges ?? []) as PathEdge[]) addEdge(e);
     } else if (c.name === "lookup_approvals") {
       for (const e of (out.evidence_edges ?? []) as PathEdge[]) addEdge(e);
+    } else if (c.name === "check_policy") {
+      for (const cit of (out.citations ?? []) as unknown[]) addCitationRef(cit);
+      for (const b of (out.breaches ?? []) as { citation?: string }[]) addCitationRef(b?.citation);
+      for (const w of (out.warnings ?? []) as { citation?: string }[]) addCitationRef(w?.citation);
+    } else if (c.name === "propose_access_request") {
+      for (const cit of (out.policy_citations ?? []) as unknown[]) addCitationRef(cit);
+      for (const b of (out.breaches ?? []) as { citation?: string }[]) addCitationRef(b?.citation);
+      const draft = out.draft as DraftRecord | undefined;
+      if (draft) {
+        for (const cit of draft.policy_citations ?? []) addCitationRef(cit);
+        for (const step of draft.approval_chain ?? []) addCitationRef(step.source_doc);
+        for (const w of draft.warnings ?? []) addCitationRef(w.citation);
+      }
     }
   }
   return { retrieved, graph_path: { nodes: [...nodes.values()], edges: [...edges.values()] } };
 }
 
-const notYet = (route: Route, why: string): FinalAnswer => ({
+interface BlockedActionInfo {
+  breaches: PolicyBreach[];
+  missing: string[];
+}
+
+function extractActionOutcome(
+  calls: ToolCallRecord[],
+  routerMissing: string[],
+): { draft: DraftRecord | null; blocked: BlockedActionInfo | null } {
+  let draft: DraftRecord | null = null;
+  let breaches: PolicyBreach[] = [];
+  const missingSet = new Set<string>(routerMissing);
+
+  for (const c of calls) {
+    if (!c.ok || !c.output || typeof c.output !== "object") continue;
+    const out = c.output as Record<string, unknown>;
+    if (c.name === "propose_access_request") {
+      if (out.status === "drafted" && out.draft) {
+        draft = out.draft as DraftRecord;
+      } else if (out.status === "blocked") {
+        draft = null;
+        if (Array.isArray(out.breaches)) breaches = out.breaches as PolicyBreach[];
+        if (Array.isArray(out.missing)) {
+          for (const m of out.missing as string[]) missingSet.add(m);
+        }
+      } else if (out.status === "needs_fields" && Array.isArray(out.missing)) {
+        for (const m of out.missing as string[]) missingSet.add(m);
+      }
+    } else if (c.name === "check_policy" && out.ok === false && Array.isArray(out.breaches)) {
+      if (breaches.length === 0) breaches = out.breaches as PolicyBreach[];
+    }
+  }
+
+  if (breaches.length > 0) {
+    return { draft: null, blocked: { breaches, missing: [...missingSet] } };
+  }
+  return { draft, blocked: null };
+}
+
+const BREACH_KEYWORDS_RE =
+  /\b(exceeds?|maximum|max\b|90[- ]day|not\s+(normally\s+)?permitted|expired|breach|violation|exception|renewable)\b/i;
+const MISSING_KEYWORDS_RE =
+  /\b(missing|provide|need\s+to\s+know|please\s+specify|required\s+fields?|sponsor|justification)\b/i;
+
+/**
+ * Enforce FR-011 / T053 on blocked action turns: policy breach and compliant alternative
+ * are always reported BEFORE any missing-fields prompt, and no draft is returned.
+ */
+export function ensureBreachBeforeMissing(
+  answer: FinalAnswer,
+  blocked: BlockedActionInfo,
+): FinalAnswer {
+  const primaryBreach = blocked.breaches[0];
+  const parsedCit = primaryBreach ? parsePolicyCitationRef(primaryBreach.citation) : null;
+  const fallbackCitations: Citation[] = parsedCit
+    ? [{ doc_id: parsedCit.doc_id, section: parsedCit.section }]
+    : [];
+
+  const breachClaims: FinalAnswer["claims"] = [];
+  const missingClaims: FinalAnswer["claims"] = [];
+
+  for (const c of answer.claims) {
+    const isBreach = BREACH_KEYWORDS_RE.test(c.text);
+    const isMissing = MISSING_KEYWORDS_RE.test(c.text) && !isBreach;
+    if (isMissing) {
+      missingClaims.push(c);
+    } else {
+      breachClaims.push(c);
+    }
+  }
+
+  if (breachClaims.length === 0 && primaryBreach) {
+    const limitDesc =
+      primaryBreach.value !== undefined && primaryBreach.limit !== undefined
+        ? `${primaryBreach.value} days exceeds the ${primaryBreach.limit}-day maximum (${primaryBreach.citation}).`
+        : `Request violates policy rule ${primaryBreach.rule} (${primaryBreach.citation}).`;
+    breachClaims.push({
+      text: `${limitDesc} ${primaryBreach.alternative}`.trim(),
+      key: true,
+      citations: fallbackCitations,
+      source_status: "effective_policy",
+    });
+  }
+
+  const allText = [...breachClaims, ...missingClaims].map((c) => c.text).join(" ");
+  if (
+    blocked.missing.length > 0 &&
+    missingClaims.length === 0 &&
+    !blocked.missing.every((f) => new RegExp(`\\b${f}\\b`, "i").test(allText))
+  ) {
+    missingClaims.push({
+      text: `Before a compliant draft can be created, please also provide the missing required fields: ${blocked.missing.join(", ")}.`,
+      key: false,
+      citations: breachClaims[0]?.citations?.length ? breachClaims[0].citations : fallbackCitations,
+      source_status: "effective_policy",
+    });
+  }
+
+  return {
+    ...answer,
+    behaviour: "answer",
+    claims: [...breachClaims, ...missingClaims],
+  };
+}
+
+const notYet = (_route: Route, why: string): FinalAnswer => ({
   behaviour: "state_gap",
   claims: [],
   assumptions: [],
@@ -117,12 +266,12 @@ export interface TurnDeps {
   agentModel?: Pick<ModelClient, "create" | "model">;
   tools?: () => Promise<McpToolClient>;
   textRoute?: typeof answerTextRoute;
+  refuseRoute?: typeof answerRefuseRoute;
 }
 
 /**
- * One chat turn (FR-004, FR-005, US6): redact → router → route → loop → post-processed answer.
- * Routes in this build: text, graph_local, graph_traversal. refuse / action / clarify arrive in
- * M4 (T051, T053, T052) and answer with a stated gap until then; no tool runs for them.
+ * One chat turn (FR-004, FR-005, FR-009, FR-011, FR-012, US3, US4, US6):
+ * redact → router → route → loop → post-processed answer.
  */
 export async function runTurn(
   message: string,
@@ -150,6 +299,7 @@ export async function runTurn(
   let retrieved: RetrievedSet = { chunks: [], edges: [] };
   let graph_path: TurnResult["graph_path"] = { nodes: [], edges: [] };
   let toolCalls: ToolCallRecord[] = [];
+  let draft: DraftRecord | null = null;
   let dropped = 0;
 
   if (route === "text") {
@@ -169,13 +319,31 @@ export async function runTurn(
       usage.input_tokens += r.usage.input_tokens;
       usage.output_tokens += r.usage.output_tokens;
     }
-  } else if (route === "graph_local" || route === "graph_traversal") {
-    const client = await (opts.tools ?? (() => createAgentClient(createMcpServer(readTools()))))();
+  } else if (route === "refuse") {
+    const r = await (opts.refuseRoute ?? answerRefuseRoute)(question, {
+      model: opts.agentModel,
+      preRule: decision.pre_rule,
+    });
+    answer = r.answer;
+    dropped = r.dropped_citations;
+    retrieved = r.retrieved;
+    if (r.usage) {
+      cost += costUsd(config.ANTHROPIC_MODEL, r.usage);
+      usage.input_tokens += r.usage.input_tokens;
+      usage.output_tokens += r.usage.output_tokens;
+    }
+  } else if (route === "graph_local" || route === "graph_traversal" || route === "action") {
+    const isAction = route === "action";
+    const defaultTools = () =>
+      createAgentClient(
+        createMcpServer(isAction ? [...readTools(), ...proposeTools()] : readTools()),
+      );
+    const client = await (opts.tools ?? defaultTools)();
     if (mode === "baseline") client.tools = client.tools.filter((t) => !GRAPH_TOOLS.has(t.name));
     try {
       const seeds = decision.entities.map((e) => `${e.id} (${e.label}: ${e.name})`).join("\n");
       const loop = await runAgentLoop({
-        system: loadGraphPrompt(),
+        system: isAction ? loadActionPrompt() : loadGraphPrompt(),
         messages: [
           {
             role: "user",
@@ -192,13 +360,22 @@ export async function runTurn(
       usage.output_tokens += loop.usage.output_tokens;
       ({ retrieved, graph_path } = evidenceFromToolCalls(loop.tool_calls));
 
+      const outcome = isAction
+        ? extractActionOutcome(loop.tool_calls, decision.router?.missing_fields ?? [])
+        : { draft: null, blocked: null };
+      draft = outcome.draft;
+
       if (loop.stop === "end_turn" && loop.text) {
         const filtered = filterCitations(FinalAnswer.parse(JSON.parse(loop.text)), retrieved);
         dropped = filtered.dropped;
         const { dropped: _d, ...rest } = filtered;
         void _d;
         answer = rest;
-        if (answer.behaviour === "answer" && !answer.claims.some((c) => c.citations.length)) {
+        if (outcome.blocked) {
+          answer = ensureBreachBeforeMissing(answer, outcome.blocked);
+        } else if (draft) {
+          answer = { ...answer, behaviour: "draft" };
+        } else if (answer.behaviour === "answer" && !answer.claims.some((c) => c.citations.length)) {
           answer = notYet(route, "No claim could be tied to retrieved evidence.");
         }
       } else {
@@ -213,7 +390,7 @@ export async function runTurn(
       await client.close();
     }
   } else {
-    const task = { refuse: "T051", action: "T053", clarify: "T052" }[route] ?? "M4";
+    const task = { clarify: "T052" }[route] ?? "M4";
     answer = notYet(route, `The ${route} route is not implemented in this build yet (${task}).`);
   }
 
@@ -240,7 +417,7 @@ export async function runTurn(
     citations,
     graph_path,
     tool_calls: toolCalls.map(({ name, input, ok, ms }) => ({ name, input, ok, ms })),
-    draft: null,
+    draft,
     entities: decision.entities,
     dropped_citations: dropped,
     latency_ms: Date.now() - t0,
