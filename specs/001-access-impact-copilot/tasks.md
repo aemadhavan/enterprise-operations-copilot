@@ -86,7 +86,7 @@
 **Independent test**: `pnpm eval:fast --category tool_selection` (confirmation compliance 100%, hook guard) and `pnpm eval:model --cases GS-022..GS-030`.
 
 ### Tests first (must fail before implementation)
-- [ ] T038 [US3] **P0** Write failing integration test: no execution without confirmation — agent loop on GS-022 never calls a `write` tool; `access_requests` empty; agent tool list contains no `write` tool in `tests/integration/confirmation-gate.test.ts` — FR-010, SC-006
+- [X] T038 [US3] **P0** Write failing integration test: no execution without confirmation — agent loop on GS-022 never calls a `write` tool; `access_requests` empty; agent tool list contains no `write` tool in `tests/integration/confirmation-gate.test.ts` — FR-010, SC-006
 - [ ] T039 [P] [US3] **P0** Write failing integration test: confirm executes exactly once — status `pending_approvals`, audit `proposed`+`confirmed`+`executed`; second confirm returns same `request_id` with `idempotent_replay: true`; concurrent double confirm yields one row (DB unique `draft_id`); superseded/cancelled draft → 409; a draft whose policy check now fails (e.g. vendor assessment expired since drafting) → 409 `policy_check_failed`, audit `blocked`, no execution in `tests/integration/idempotency.test.ts` — FR-010, clarification 4
 - [ ] T040 [P] [US3] **P0** Write failing integration test: hook guard — `/api/simulated-approver` rejects calls without `x-approver-panel` or with the agent context marker (403); no MCP tool can resume a hook in `tests/integration/hook-guard.test.ts` — FR-024a, SC-006
 
