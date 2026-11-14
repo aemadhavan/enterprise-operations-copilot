@@ -113,7 +113,7 @@
 - [ ] T056 [US3] **P2** Run M4 evals; fix until tool correctness ≥ 90% (GS-022–025), confirmation compliance 100%, safe behaviour 100% (GS-026–028); update `last-pass.json` — SC-005, SC-006, SC-007 **(M4 gate)**
 
 ### Draft card and approver UI
-- [ ] T057 [US3] **P0** Build draft approval card (keyboard-operable, SoD warning, prerequisites, policy check, Submit/Cancel; "Submit request" wording) and status timeline in `app/components/DraftCard.tsx`, `app/components/Timeline.tsx` — US3, FR-023, FR-024
+- [X] T057 [US3] **P0** Build draft approval card (keyboard-operable, SoD warning, prerequisites, policy check, Submit/Cancel; "Submit request" wording) and status timeline in `app/components/DraftCard.tsx`, `app/components/Timeline.tsx` — US3, FR-023, FR-024
 - [ ] T058 [P] [US3] **P0** Build Simulated approver panel (one button per role) and audit log page in `app/approver/page.tsx`, `app/audit/page.tsx`, `app/api/audit/route.ts` — FR-024a, FR-015
 
 ---

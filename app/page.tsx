@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useId, useState } from "react";
+import type { DraftRecord } from "@/lib/drafts/drafts";
+import type { RequestTimeline } from "@/lib/workflow/engine";
+import { DraftCard } from "./components/DraftCard";
 import {
   EvidencePanel,
   formatCitationChip,
   routeDisplayLabel,
   type ChatTurnResponse,
 } from "./components/EvidencePanel";
+import { Timeline } from "./components/Timeline";
 
 interface ChatMessage {
   id: string;
@@ -28,6 +32,12 @@ const SAMPLE_QUESTIONS = [
     question:
       "A contractor needs read access to Atlas CRM. What approvals and controls are required?",
   },
+  {
+    id: "GS-022",
+    label: "GS-022 (Draft action)",
+    question:
+      "Raise an access request for contractor Alex Chen, sponsored by Tom Gallagher, for read access to Atlas CRM for 60 days to support a customer-churn analysis.",
+  },
 ];
 
 export default function Home() {
@@ -37,6 +47,10 @@ export default function Home() {
   const [mode, setMode] = useState<"graphrag" | "baseline">("graphrag");
   const [loading, setLoading] = useState(false);
   const [selectedTurn, setSelectedTurn] = useState<ChatTurnResponse | null>(null);
+  const [draftsById, setDraftsById] = useState<Record<string, DraftRecord>>({});
+  const [timelinesByDraftId, setTimelinesByDraftId] = useState<Record<string, RequestTimeline>>({});
+  const [draftBusyById, setDraftBusyById] = useState<Record<string, boolean>>({});
+  const [draftErrorById, setDraftErrorById] = useState<Record<string, string | null>>({});
 
   async function sendQuestion(questionText: string, overrideMode?: "graphrag" | "baseline") {
     const trimmed = questionText.trim();
@@ -73,6 +87,10 @@ export default function Home() {
       }
 
       const turn = data as ChatTurnResponse;
+      if (turn.draft) {
+        const d = turn.draft;
+        setDraftsById((prev) => ({ ...prev, [d.draft_id]: d }));
+      }
       setSelectedTurn(turn);
       setMessages((prev) => [
         ...prev,
@@ -95,6 +113,80 @@ export default function Home() {
       ]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refreshTimeline(draftId: string, requestId: string) {
+    try {
+      const res = await fetch(`/api/requests/${encodeURIComponent(requestId)}`);
+      if (!res.ok) return;
+      const timeline = (await res.json()) as RequestTimeline;
+      setTimelinesByDraftId((prev) => ({ ...prev, [draftId]: timeline }));
+    } catch {
+      // Keep last known timeline on transient polling errors.
+    }
+  }
+
+  async function handleConfirmDraft(draft: DraftRecord) {
+    const draftId = draft.draft_id;
+    setDraftBusyById((prev) => ({ ...prev, [draftId]: true }));
+    setDraftErrorById((prev) => ({ ...prev, [draftId]: null }));
+    try {
+      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/confirm`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmed_by: draft.payload.sponsor || "anonymous" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error?.message ?? `Confirmation failed (${res.status})`;
+        setDraftErrorById((prev) => ({ ...prev, [draftId]: msg }));
+        return;
+      }
+      setDraftsById((prev) => ({
+        ...prev,
+        [draftId]: { ...(prev[draftId] ?? draft), status: "confirmed" },
+      }));
+      if (typeof data.request_id === "string") {
+        await refreshTimeline(draftId, data.request_id);
+      }
+    } catch (err) {
+      setDraftErrorById((prev) => ({
+        ...prev,
+        [draftId]: err instanceof Error ? err.message : "Failed to submit request",
+      }));
+    } finally {
+      setDraftBusyById((prev) => ({ ...prev, [draftId]: false }));
+    }
+  }
+
+  async function handleCancelDraft(draft: DraftRecord) {
+    const draftId = draft.draft_id;
+    setDraftBusyById((prev) => ({ ...prev, [draftId]: true }));
+    setDraftErrorById((prev) => ({ ...prev, [draftId]: null }));
+    try {
+      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/cancel`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ actor: draft.payload.sponsor || "anonymous" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error?.message ?? `Cancellation failed (${res.status})`;
+        setDraftErrorById((prev) => ({ ...prev, [draftId]: msg }));
+        return;
+      }
+      setDraftsById((prev) => ({
+        ...prev,
+        [draftId]: { ...(prev[draftId] ?? draft), status: "cancelled" },
+      }));
+    } catch (err) {
+      setDraftErrorById((prev) => ({
+        ...prev,
+        [draftId]: err instanceof Error ? err.message : "Failed to cancel draft",
+      }));
+    } finally {
+      setDraftBusyById((prev) => ({ ...prev, [draftId]: false }));
     }
   }
 
@@ -122,7 +214,13 @@ export default function Home() {
               data)
             </p>
           </div>
-          <div className="mode-controls" role="group" aria-label="Retrieval mode">
+          <div className="mode-controls" role="group" aria-label="Retrieval mode and navigation">
+            <a href="/approver" className="nav-pill-link">
+              Approver Panel
+            </a>
+            <a href="/audit" className="nav-pill-link">
+              Audit Log
+            </a>
             <label htmlFor="mode-select" className="mode-label">
               Mode:
             </label>
@@ -168,13 +266,22 @@ export default function Home() {
             </div>
           )}
 
-          {messages.map((m) =>
-            m.role === "user" ? (
-              <article key={m.id} className="msg msg-user">
-                <div className="msg-role">You</div>
-                <div className="msg-body">{m.text}</div>
-              </article>
-            ) : (
+          {messages.map((m) => {
+            if (m.role === "user") {
+              return (
+                <article key={m.id} className="msg msg-user">
+                  <div className="msg-role">You</div>
+                  <div className="msg-body">{m.text}</div>
+                </article>
+              );
+            }
+
+            const turnDraft = m.turn?.draft
+              ? (draftsById[m.turn.draft.draft_id] ?? m.turn.draft)
+              : null;
+            const timeline = turnDraft ? timelinesByDraftId[turnDraft.draft_id] : undefined;
+
+            return (
               <article
                 key={m.id}
                 className={`msg msg-assistant ${selectedTurn === m.turn ? "msg-selected" : ""}`}
@@ -248,6 +355,29 @@ export default function Home() {
                       </p>
                     )}
 
+                    {turnDraft && (
+                      <div
+                        className="msg-draft-container"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DraftCard
+                          draft={turnDraft}
+                          busy={Boolean(draftBusyById[turnDraft.draft_id])}
+                          error={draftErrorById[turnDraft.draft_id] ?? null}
+                          onConfirm={() => handleConfirmDraft(turnDraft)}
+                          onCancel={() => handleCancelDraft(turnDraft)}
+                        />
+                        {timeline && (
+                          <Timeline
+                            timeline={timeline}
+                            onRefresh={() =>
+                              refreshTimeline(turnDraft.draft_id, timeline.request_id)
+                            }
+                          />
+                        )}
+                      </div>
+                    )}
+
                     <div className="inline-meta">
                       <span>
                         <strong>Assumptions:</strong>{" "}
@@ -267,8 +397,8 @@ export default function Home() {
                   </div>
                 ) : null}
               </article>
-            ),
-          )}
+            );
+          })}
 
           {loading && (
             <div className="msg msg-assistant msg-loading" role="status">

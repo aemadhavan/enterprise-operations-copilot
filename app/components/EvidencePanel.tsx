@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { Citation, Claim, Confidence, Route } from "@/lib/agent/schemas";
+import type { DraftRecord } from "@/lib/drafts/drafts";
 
 export interface PathNode {
   id: string;
@@ -40,7 +41,7 @@ export interface ChatTurnResponse {
     edges: PathEdge[];
   };
   tool_calls?: { name: string; input: unknown; ok: boolean; ms: number }[];
-  draft: unknown;
+  draft: DraftRecord | null;
   trace_id: string | null;
   latency_ms: number;
   cost_usd: number;
