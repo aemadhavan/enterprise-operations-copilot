@@ -127,7 +127,7 @@
 - [ ] T060 [P] [US6] **P2** Write versioned judge prompts (claims split + support check, citation support, answer-point coverage; strict JSON output) in `evaluation/judges/groundedness.v1.md`, `citation.v1.md`, `completeness.v1.md` — SC-001–SC-003
 - [ ] T061 [US6] **P2** Implement Tier 2 runner with `JUDGE_MODEL` (Opus, fixed effort), behaviour-case rule for `state_gap`/`clarify`, both modes in `evaluation/runner/tier2.ts` — FR-020, SC-001–SC-003
 - [ ] T062 [US6] **P2** Add 3-run variation report (min/max/mean per Tier-1b metric) and the metric × mode × category table in `evaluation/runner/report.ts` — FR-021, SC-008, SC-009
-- [ ] T063 [P] **P0** Add CI: `eval-fast.yml` on every push (validator, tsc, Vitest, Neon branch migrate + ingest, Tier 1a) in `.github/workflows/eval-fast.yml` — FR-019
+- [X] T063 [P] **P0** Add CI: `eval-fast.yml` on every push (validator, tsc, Vitest, Neon branch migrate + ingest, Tier 1a) in `.github/workflows/eval-fast.yml` — FR-019
 - [ ] T064 [P] **P2** Add CI: `eval-pr.yml` on PRs to `main` (Tier 1b + Tier 2, secrets, Neon branch create/delete) in `.github/workflows/eval-pr.yml` — FR-019
 - [ ] T065 [US6] **P2** Run `eval:full --mode both` and `eval:model --runs 3`; hand-check ≥ 10 cases and log disagreements in `docs/evaluation-results.md` — SC-001–SC-003, Constitution VIII **(M5 gate)**
 - [ ] T066 [P] **P3** Implement personal-name redaction (Should; graph `Person` allow-list) in `lib/observability/redact.ts` — FR-017 (cut first if behind)
