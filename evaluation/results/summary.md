@@ -1,6 +1,6 @@
 # Eval summary: Tier 1a, M2
 
-Run 2026-11-14T03:19:06.514Z · 20 cases · 3.8 s · embedding voyage-3.5 · dataset 72a625175df3 · graph: graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)
+Run 2026-11-14T03:21:21.953Z · 20 cases · 3.7 s · embedding voyage-3.5 · dataset 72a625175df3 · graph: graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)
 
 ## Gates
 
