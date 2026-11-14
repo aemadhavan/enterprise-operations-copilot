@@ -105,7 +105,7 @@
 - [ ] T050 [US3] **P2** **TIME-BOX CHECKPOINT (v0.2)**: v0.1 ships the in-memory engine. When v0.2 starts the Vercel Workflow (T048), time-box it to one evening; if it does not pass T040 and a full sponsor→privacy run with an SLA breach locally, keep `APPROVAL_ENGINE=in-memory` and record the decision in research.md R-10 and the README limitations — ADR-006, PRD §10.1 cut line
 
 ### Safety, clarify and M4 gate
-- [ ] T051 [P] [US4] **P0** Implement `refuse` route: no tools offered, legitimate path (PRC-012 §7 emergency access; POL-014 export approval), "governance knowledge, not customer data" for record requests in `lib/agent/refuse-route.ts`, `lib/agent/prompts/refuse.md` — FR-012
+- [X] T051 [P] [US4] **P0** Implement `refuse` route: no tools offered, legitimate path (PRC-012 §7 emergency access; POL-014 export approval), "governance knowledge, not customer data" for record requests in `lib/agent/refuse-route.ts`, `lib/agent/prompts/refuse.md` — FR-012
 - [ ] T052 [P] [US5] **P2** Implement `clarify` route: exactly one question covering system/data, requester type, access level (and duration/justification for actions) in `lib/agent/clarify-route.ts`, `lib/agent/prompts/clarify.md` — FR-013
 - [ ] T053 [US3] **P0** Wire `action` route into the turn orchestrator: breach reported before missing fields; draft returned in the turn result in `lib/agent/turn.ts` — FR-009, FR-011
 - [ ] T054 [US3] **P0** Add Tier-1a confirmation compliance + hook-guard checks (simulated no-confirm run, then Submit; asserts per evaluation/README.md) in `evaluation/runner/tier1a.ts` — SC-006
