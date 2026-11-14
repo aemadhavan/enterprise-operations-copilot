@@ -1,7 +1,7 @@
-// Eval runner CLI (FR-018, FR-022). Tier 1a = no model calls.
-//   pnpm eval:fast [--milestone M2] [--cases GS-001..GS-008,GS-018] [--category direct]
-//                  [--mode baseline|graphrag|both] [--arms hybrid|fts|vector|all] [--runs N]
-//                  [--no-update]   (do not write last-pass.json)
+// Eval runner CLI (FR-018, FR-020, FR-021, FR-022):
+//   pnpm eval:fast  (--tier 1a, no model calls)
+//   pnpm eval:model (--tier 1b, copilot turns: route, tool, safety, clarify, latency, cost)
+//   pnpm eval:full  (--tier 2,  Tier 1a + 1b + Opus judge: groundedness, citation, completeness)
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -58,6 +58,9 @@ export function parseArgs(argv: string[]): Args {
     runs: 1,
     updateLastPass: true,
   };
+  let explicitMilestone = false;
+  let explicitMode = false;
+
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const next = () => argv[++i];
@@ -67,6 +70,7 @@ export function parseArgs(argv: string[]): Args {
         break;
       case "--milestone":
         a.milestone = oneOf("milestone", next(), ["M2", "M3", "M4", "M5"]);
+        explicitMilestone = true;
         break;
       case "--cases":
         a.cases = expandCaseRanges(next() ?? "");
@@ -76,6 +80,7 @@ export function parseArgs(argv: string[]): Args {
         break;
       case "--mode":
         a.mode = oneOf("mode", next(), ["baseline", "graphrag", "both"]);
+        explicitMode = true;
         break;
       case "--arms": {
         const v = oneOf("arms", next(), ["hybrid", "fts", "vector", "all"]);
@@ -92,6 +97,16 @@ export function parseArgs(argv: string[]): Args {
         throw new Error(`Unknown flag ${flag}`);
     }
   }
+
+  // Tier 1b defaults to M4 (all 30 cases) and graphrag unless overridden; Tier 2 defaults to M5 and both modes.
+  if (!explicitMilestone) {
+    if (a.tier === "1b") a.milestone = "M4";
+    if (a.tier === "2") a.milestone = "M5";
+  }
+  if (!explicitMode && a.tier === "1b") {
+    a.mode = "graphrag";
+  }
+
   return a;
 }
 
@@ -116,14 +131,11 @@ async function main() {
   const { getConfig } = await import("@/lib/config");
   const { closePool } = await import("@/lib/db/client");
   const { runRetrieval, runValidator } = await import("./tier1a");
+  const { runTier1b } = await import("./tier1b");
+  const { runTier2 } = await import("./tier2");
   const report = await import("./report");
 
   const args = parseArgs(process.argv.slice(2));
-  if (args.tier !== "1a") {
-    console.error(`Tier ${args.tier} is v0.2 (PRD §10.1); only Tier 1a exists in v0.1.`);
-    process.exitCode = 2;
-    return;
-  }
   const config = getConfig();
   const started = performance.now();
 
@@ -138,11 +150,45 @@ async function main() {
   const { cases: all, hash } = loadGoldenSet();
   const cases = selectCases(all, args);
   const modes: Mode[] = args.mode === "both" ? ["baseline", "graphrag"] : [args.mode];
+
   try {
-    const results = [];
-    for (let run = 0; run < args.runs; run++) {
-      results.push(...(await runRetrieval(cases, modes, args.arms)));
+    let results = [];
+    if (args.tier === "1a") {
+      for (let run = 1; run <= args.runs; run++) {
+        const batch = await runRetrieval(cases, modes, args.arms);
+        results.push(...batch.map((r) => ({ ...r, category: all.find((c) => c.id === r.case_id)?.category, run })));
+      }
+    } else if (args.tier === "1b") {
+      const out = await runTier1b(cases, modes, {
+        runs: args.runs,
+        onCaseComplete: (r) => {
+          console.log(
+            `[1b run=${r.run}] ${r.case_id} (${r.mode}) route=${r.route_chosen}/${r.expected_route} ${r.route_accuracy === 1 ? "✓" : "✗"}` +
+              (r.tool_correctness !== null && r.tool_correctness !== undefined
+                ? ` tool=${r.tool_correctness}`
+                : "") +
+              (r.safe_behaviour !== null && r.safe_behaviour !== undefined
+                ? ` safe=${r.safe_behaviour}`
+                : "") +
+              (r.clarify_behaviour !== null && r.clarify_behaviour !== undefined
+                ? ` clarify=${r.clarify_behaviour}`
+                : "") +
+              ` (${r.latency_ms} ms, $${(r.cost_usd ?? 0).toFixed(4)})`,
+          );
+        },
+      });
+      results = out.results;
+    } else {
+      results = await runTier2(cases, modes, {
+        runs: args.runs,
+        onCaseComplete: (r) => {
+          console.log(
+            `[2 turn run=${r.run}] ${r.case_id} (${r.mode}) route=${r.route_chosen}/${r.expected_route} (${r.latency_ms} ms)`,
+          );
+        },
+      });
     }
+
     const duration_ms = Math.round(performance.now() - started);
     const gate = report.evaluateGates(args.milestone, results);
     const regressions = report.findRegressions(await report.readLastPass(), results);
@@ -153,14 +199,27 @@ async function main() {
         milestone: args.milestone,
         modes,
         arms: args.arms,
+        runs: args.runs,
         cases: cases.map((c) => c.id),
         dataset_hash: hash,
         embedding_model: config.EMBEDDING_MODEL,
+        provider: config.MODEL_PROVIDER,
         models: {
-          router: config.ROUTER_MODEL,
-          agent: config.ANTHROPIC_MODEL,
+          router:
+            config.MODEL_PROVIDER === "bedrock"
+              ? config.BEDROCK_ROUTER_MODEL_ID
+              : config.ROUTER_MODEL,
+          agent:
+            config.MODEL_PROVIDER === "bedrock"
+              ? config.BEDROCK_MODEL_ID
+              : config.ANTHROPIC_MODEL,
           judge: config.JUDGE_MODEL,
-          note: "Tier 1a makes no chat-model calls",
+          note:
+            args.tier === "1a"
+              ? "Tier 1a makes no chat-model calls"
+              : args.tier === "1b"
+                ? "Tier 1b runs copilot turns with fixed effort (no judge calls)"
+                : "Tier 2 runs copilot turns + JUDGE_MODEL (Opus) scoring",
         },
         graph:
           "graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)",

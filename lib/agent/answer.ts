@@ -19,6 +19,7 @@ const sectionNumber = (section: string) => {
 
 /** Find the retrieved section a cited section refers to (full path, last segment or number). */
 function matchSection(docSections: string[], cited: string): string | null {
+  if (docSections.includes("*")) return cited.replace(/^§\s*/, "").trim() || "1";
   const c = normalise(cited);
   const cNum = c.match(/^(\d+(?:\.\d+)*)\.?$/)?.[1] ?? null;
   for (const s of docSections) {

@@ -13,8 +13,9 @@ import { redact } from "@/lib/observability/redact";
 import type { PolicyBreach } from "@/lib/policy/checks";
 import { routeQuestion, type RouteDecision } from "@/lib/router";
 import { computeConfidence, filterCitations, renderMarkdown, type RetrievedSet } from "./answer";
+import { answerClarifyRoute } from "./clarify-route";
 import { runAgentLoop, type ToolCallRecord } from "./loop";
-import { answerRefuseRoute } from "./refuse-route";
+import { answerRefuseRoute, REFUSE_EVIDENCE } from "./refuse-route";
 import { FinalAnswer, jsonSchemaFor, type Citation, type Confidence, type Route } from "./schemas";
 import { answerTextRoute } from "./text-route";
 
@@ -36,6 +37,7 @@ interface PathEdge {
 
 export interface TurnResult {
   route: Route;
+  router_route?: Route;
   intent: string;
   risk: string;
   mode: TurnMode;
@@ -51,7 +53,8 @@ export interface TurnResult {
   };
   citations: Citation[];
   graph_path: { nodes: PathNode[]; edges: PathEdge[] };
-  tool_calls: { name: string; input: unknown; ok: boolean; ms: number }[];
+  tool_calls: { name: string; input: unknown; ok: boolean; ms: number; output?: unknown }[];
+  evidence_excerpts?: { doc_id: string; section: string; text: string }[];
   draft: DraftRecord | null;
   entities: RouteDecision["entities"];
   dropped_citations: number;
@@ -79,7 +82,7 @@ export function parsePolicyCitationRef(raw: string): { doc_id: string; section: 
   if (!m) return null;
   return {
     doc_id: m[1],
-    section: m[2]?.trim() || "1",
+    section: m[2]?.trim() || "*",
   };
 }
 
@@ -134,14 +137,17 @@ export function evidenceFromToolCalls(calls: ToolCallRecord[]) {
       for (const cit of (out.citations ?? []) as unknown[]) addCitationRef(cit);
       for (const b of (out.breaches ?? []) as { citation?: string }[]) addCitationRef(b?.citation);
       for (const w of (out.warnings ?? []) as { citation?: string }[]) addCitationRef(w?.citation);
-    } else if (c.name === "propose_access_request") {
+    } else if (c.name === "propose_access_request" || c.name === "propose_onboarding_ticket") {
       for (const cit of (out.policy_citations ?? []) as unknown[]) addCitationRef(cit);
       for (const b of (out.breaches ?? []) as { citation?: string }[]) addCitationRef(b?.citation);
+      const vf = out.vendor_flag as { citation?: string } | undefined;
+      if (vf?.citation) addCitationRef(vf.citation);
       const draft = out.draft as DraftRecord | undefined;
       if (draft) {
         for (const cit of draft.policy_citations ?? []) addCitationRef(cit);
         for (const step of draft.approval_chain ?? []) addCitationRef(step.source_doc);
         for (const w of draft.warnings ?? []) addCitationRef(w.citation);
+        if (draft.payload.vendor_flag?.citation) addCitationRef(draft.payload.vendor_flag.citation);
       }
     }
   }
@@ -164,7 +170,7 @@ function extractActionOutcome(
   for (const c of calls) {
     if (!c.ok || !c.output || typeof c.output !== "object") continue;
     const out = c.output as Record<string, unknown>;
-    if (c.name === "propose_access_request") {
+    if (c.name === "propose_access_request" || c.name === "propose_onboarding_ticket") {
       if (out.status === "drafted" && out.draft) {
         draft = out.draft as DraftRecord;
       } else if (out.status === "blocked") {
@@ -268,6 +274,7 @@ export interface TurnDeps {
   tools?: () => Promise<McpToolClient>;
   textRoute?: typeof answerTextRoute;
   refuseRoute?: typeof answerRefuseRoute;
+  clarifyRoute?: typeof answerClarifyRoute;
   langfuse?: LangfuseClientLike;
 }
 
@@ -299,6 +306,7 @@ export async function runTurn(
 
   let answer: FinalAnswer;
   let retrieved: RetrievedSet = { chunks: [], edges: [] };
+  let evidence_excerpts: { doc_id: string; section: string; text: string }[] = [];
   let graph_path: TurnResult["graph_path"] = { nodes: [], edges: [] };
   let toolCalls: ToolCallRecord[] = [];
   let draft: DraftRecord | null = null;
@@ -316,6 +324,11 @@ export async function runTurn(
       })),
       edges: [],
     };
+    evidence_excerpts = r.retrieved.map((c) => ({
+      doc_id: c.doc_id,
+      section: c.section,
+      text: c.text ?? "",
+    }));
     if (r.usage) {
       cost += costUsd(config.ANTHROPIC_MODEL, r.usage);
       usage.input_tokens += r.usage.input_tokens;
@@ -329,6 +342,24 @@ export async function runTurn(
     answer = r.answer;
     dropped = r.dropped_citations;
     retrieved = r.retrieved;
+    evidence_excerpts = REFUSE_EVIDENCE.map((c) => ({
+      doc_id: c.doc_id,
+      section: c.section,
+      text: c.text,
+    }));
+    if (r.usage) {
+      cost += costUsd(config.ANTHROPIC_MODEL, r.usage);
+      usage.input_tokens += r.usage.input_tokens;
+      usage.output_tokens += r.usage.output_tokens;
+    }
+  } else if (route === "clarify") {
+    const r = await (opts.clarifyRoute ?? answerClarifyRoute)(question, {
+      model: opts.agentModel,
+      missingFields: decision.router?.missing_fields,
+    });
+    answer = r.answer;
+    dropped = r.dropped_citations;
+    retrieved = r.retrieved;
     if (r.usage) {
       cost += costUsd(config.ANTHROPIC_MODEL, r.usage);
       usage.input_tokens += r.usage.input_tokens;
@@ -336,10 +367,17 @@ export async function runTurn(
     }
   } else if (route === "graph_local" || route === "graph_traversal" || route === "action") {
     const isAction = route === "action";
-    const defaultTools = () =>
-      createAgentClient(
-        createMcpServer(isAction ? [...readTools(), ...proposeTools()] : readTools()),
+    const isOnboardingAction =
+      isAction && /\b(onboard(ing)?|onboarding\s+ticket|new\s+contractor)\b/i.test(question);
+    const defaultTools = () => {
+      if (!isAction) return createAgentClient(createMcpServer(readTools()));
+      const activePropose = proposeTools().filter((t) =>
+        isOnboardingAction
+          ? t.name !== "propose_access_request"
+          : t.name !== "propose_onboarding_ticket",
       );
+      return createAgentClient(createMcpServer([...readTools(), ...activePropose]));
+    };
     const client = await (opts.tools ?? defaultTools)();
     if (mode === "baseline") client.tools = client.tools.filter((t) => !GRAPH_TOOLS.has(t.name));
     try {
@@ -425,8 +463,48 @@ export async function runTurn(
     client: opts.langfuse,
   });
 
+  if (evidence_excerpts.length === 0 && toolCalls.length > 0) {
+    for (const tc of toolCalls) {
+      if (!tc.ok || !tc.output || typeof tc.output !== "object") continue;
+      const out = tc.output as Record<string, unknown>;
+      if (tc.name === "search_documents" && Array.isArray(out.results)) {
+        for (const r of out.results as { doc_id: string; section: string; text?: string }[]) {
+          evidence_excerpts.push({
+            doc_id: r.doc_id,
+            section: r.section,
+            text: r.text ?? "",
+          });
+        }
+      } else if (tc.name === "get_section" && typeof out.doc_id === "string") {
+        evidence_excerpts.push({
+          doc_id: out.doc_id,
+          section: String(out.section ?? ""),
+          text: String(out.text ?? ""),
+        });
+      } else if (
+        tc.name === "lookup_approvals" ||
+        tc.name === "check_policy" ||
+        tc.name === "propose_access_request" ||
+        tc.name === "propose_onboarding_ticket"
+      ) {
+        const citedDocs = [
+          ...((out.citations as string[] | undefined) ?? []),
+          ...((out.policy_citations as string[] | undefined) ?? []),
+          ...(((out.breaches as { citation?: string }[] | undefined) ?? []).map((b) => b.citation ?? "")),
+          ...(((out.warnings as { citation?: string }[] | undefined) ?? []).map((w) => w.citation ?? "")),
+        ].filter(Boolean);
+        evidence_excerpts.push({
+          doc_id: citedDocs.length > 0 ? citedDocs.join(", ") : `TOOL:${tc.name}`,
+          section: tc.name,
+          text: JSON.stringify(out),
+        });
+      }
+    }
+  }
+
   return {
     route,
+    router_route: decision.route,
     intent: decision.intent,
     risk: decision.risk,
     mode,
@@ -443,6 +521,7 @@ export async function runTurn(
     citations,
     graph_path,
     tool_calls: formattedToolCalls,
+    evidence_excerpts,
     draft,
     entities: decision.entities,
     dropped_citations: dropped,

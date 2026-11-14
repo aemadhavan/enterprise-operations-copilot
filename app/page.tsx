@@ -3,6 +3,7 @@
 import React, { useId, useState } from "react";
 import type { DraftRecord } from "@/lib/drafts/drafts";
 import type { RequestTimeline } from "@/lib/workflow/engine";
+import { CompareToggle } from "./components/CompareToggle";
 import { DraftCard } from "./components/DraftCard";
 import {
   EvidencePanel,
@@ -16,6 +17,7 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  question?: string;
   turn?: ChatTurnResponse;
   error?: string;
 }
@@ -98,6 +100,7 @@ export default function Home() {
           id: `a-${Date.now()}`,
           role: "assistant",
           text: turn.answer.markdown,
+          question: trimmed,
           turn,
         },
       ]);
@@ -220,6 +223,9 @@ export default function Home() {
             </a>
             <a href="/audit" className="nav-pill-link">
               Audit Log
+            </a>
+            <a href="/evals" className="nav-pill-link">
+              Eval Dashboard
             </a>
             <label htmlFor="mode-select" className="mode-label">
               Mode:
@@ -394,6 +400,17 @@ export default function Home() {
                         s
                       </span>
                     </div>
+
+                    {m.turn.mode === "graphrag" && m.question && (
+                      <div style={{ marginTop: "0.5rem" }}>
+                        <CompareToggle
+                          question={m.question}
+                          primaryTurn={m.turn}
+                          conversationId={convId}
+                          onSelectTurn={(t) => setSelectedTurn(t)}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : null}
               </article>

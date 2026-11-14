@@ -13,10 +13,14 @@ export interface PrerequisiteItem {
 }
 
 export function prerequisitesForDraft(draft: DraftRecord): PrerequisiteItem[] {
-  const { requester_type, system_id, vendor } = draft.payload;
+  const { requester_type, system_id, vendor, restricted_access_expected } = draft.payload;
   const items: PrerequisiteItem[] = [];
 
-  if (requester_type === "Contractor" || requester_type === "Vendor") {
+  if (
+    draft.kind === "onboarding_ticket" ||
+    requester_type === "Contractor" ||
+    requester_type === "Vendor"
+  ) {
     items.push(
       {
         id: "nda",
@@ -29,7 +33,7 @@ export function prerequisitesForDraft(draft: DraftRecord): PrerequisiteItem[] {
         citation: "POL-022 §3",
       },
     );
-    if (RESTRICTED_SYSTEMS.has(system_id)) {
+    if (RESTRICTED_SYSTEMS.has(system_id) || restricted_access_expected) {
       items.push({
         id: "background_check",
         label: "Verified background check (Restricted system)",
@@ -140,17 +144,20 @@ export function DraftCard({
     }
   }
 
+  const isOnboarding = draft.kind === "onboarding_ticket";
+
   return (
     <section
       className="draft-card"
-      aria-label={`Access request draft v${draft.version}`}
+      aria-label={`${isOnboarding ? "Onboarding ticket" : "Access request"} draft v${draft.version}`}
       data-testid="draft-card"
       onKeyDown={handleKeyDown}
     >
       <header className="draft-card-header">
         <div className="draft-card-title-group">
           <h3 className="draft-card-title">
-            Draft Access Request <span className="draft-version">v{draft.version}</span>
+            {isOnboarding ? "Draft Contractor Onboarding Ticket" : "Draft Access Request"}{" "}
+            <span className="draft-version">v{draft.version}</span>
           </h3>
           <span
             className={`badge badge-draft-status badge-draft-${draft.status}`}
@@ -169,9 +176,10 @@ export function DraftCard({
 
       <div className="draft-payload-grid" data-testid="draft-payload">
         <div>
-          <span className="meta-label">Requester</span>
+          <span className="meta-label">{isOnboarding ? "Contractor" : "Requester"}</span>
           <div className="meta-value">
-            <strong>{draft.payload.requester_name}</strong> ({draft.payload.requester_type}
+            <strong>{draft.payload.contractor_name ?? draft.payload.requester_name}</strong> (
+            {draft.payload.requester_type}
             {draft.payload.vendor ? ` · ${draft.payload.vendor}` : ""})
           </div>
         </div>
@@ -179,20 +187,40 @@ export function DraftCard({
           <span className="meta-label">Sponsor</span>
           <div className="meta-value">{draft.payload.sponsor}</div>
         </div>
-        <div>
-          <span className="meta-label">Target System / Access</span>
-          <div className="meta-value">
-            <code>{draft.payload.system_id}</code> · <strong>{draft.payload.access_level}</strong>
-          </div>
-        </div>
-        <div>
-          <span className="meta-label">Duration</span>
-          <div className="meta-value">{draft.payload.duration_days} calendar days</div>
-        </div>
-        <div className="draft-justification">
-          <span className="meta-label">Justification</span>
-          <div className="meta-value">{draft.payload.justification}</div>
-        </div>
+        {isOnboarding ? (
+          <>
+            <div>
+              <span className="meta-label">Engagement Dates</span>
+              <div className="meta-value">
+                <code>{draft.payload.start_date}</code> → <code>{draft.payload.end_date}</code>
+              </div>
+            </div>
+            <div>
+              <span className="meta-label">Restricted Access Expected</span>
+              <div className="meta-value">
+                {draft.payload.restricted_access_expected ? "Yes (background check required)" : "No"}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <span className="meta-label">Target System / Access</span>
+              <div className="meta-value">
+                <code>{draft.payload.system_id}</code> ·{" "}
+                <strong>{draft.payload.access_level}</strong>
+              </div>
+            </div>
+            <div>
+              <span className="meta-label">Duration</span>
+              <div className="meta-value">{draft.payload.duration_days} calendar days</div>
+            </div>
+            <div className="draft-justification">
+              <span className="meta-label">Justification</span>
+              <div className="meta-value">{draft.payload.justification}</div>
+            </div>
+          </>
+        )}
       </div>
 
       {sodWarnings.map((w, idx) => (

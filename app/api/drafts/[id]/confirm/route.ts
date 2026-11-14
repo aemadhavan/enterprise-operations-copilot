@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import type { AccessRequestPayload } from "@/lib/drafts/drafts";
-import type { ExecuteDraftResult } from "@/lib/drafts/execute";
+import { getDraft, type AccessRequestPayload } from "@/lib/drafts/drafts";
+import type { ExecuteDraftResult, ExecuteOnboardingResult } from "@/lib/drafts/execute";
 import { createConfirmClient } from "@/lib/mcp/client";
 import type { ConfirmationEvent } from "@/lib/mcp/registry";
 import { createMcpServer } from "@/lib/mcp/server";
@@ -61,6 +61,54 @@ export async function POST(
   const server = createMcpServer(writeTools());
   const client = await createConfirmClient(server, confirmation);
   try {
+    const draftMeta = await getDraft(id).catch(() => null);
+    if (draftMeta?.kind === "onboarding_ticket") {
+      const toolRes = await client.call("create_onboarding_ticket", { draft_id: id });
+      if (!toolRes.ok) {
+        return NextResponse.json(toolRes.data, { status: 400 });
+      }
+      const res = toolRes.data as ExecuteOnboardingResult;
+      if (res.status === "not_found") {
+        return NextResponse.json(
+          { error: { code: "not_found", message: `Draft ${id} not found` } },
+          { status: 404 },
+        );
+      }
+      if (res.status === "draft_not_submittable") {
+        return NextResponse.json(
+          {
+            error: {
+              code: "draft_not_submittable",
+              message: `Draft ${id} has status '${res.draft_status}' and cannot be submitted`,
+            },
+          },
+          { status: 409 },
+        );
+      }
+      if (res.status === "confirmation_required") {
+        return NextResponse.json(
+          { error: { code: "confirmation_required", message: "Action confirmation required" } },
+          { status: 403 },
+        );
+      }
+      const decisionTrace = await recordApprovalDecision({
+        type: "confirmation",
+        draft_id: id,
+        request_id: res.ticket_id,
+        actor: confirmed_by,
+        decision: "confirmed",
+        sla_breached: false,
+        at: confirmation.at,
+      });
+      return NextResponse.json({
+        ticket_id: res.ticket_id,
+        request_id: res.ticket_id,
+        status: res.ticket_status,
+        idempotent_replay: res.idempotent_replay,
+        trace_id: decisionTrace.trace_id,
+      });
+    }
+
     const toolRes = await client.call("create_access_request", { draft_id: id });
     if (!toolRes.ok) {
       return NextResponse.json(toolRes.data, { status: 400 });

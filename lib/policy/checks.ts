@@ -15,7 +15,7 @@ export interface PolicyBreach {
 }
 
 export interface PolicyWarning {
-  code: "vendor_assessment_expires_before_end" | "vendor_not_stated";
+  code: "vendor_assessment_expires_before_end" | "vendor_not_stated" | "sponsor_not_stated";
   message: string;
   citation: string;
   valid_until?: string;

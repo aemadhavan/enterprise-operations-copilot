@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="100%" height="100%">
+  <defs>
+    <style>
+      @keyframes pulse { 0%, 100% { opacity: 0.95; } 50% { opacity: 0.7; } }
+      @keyframes slideStep1 { 0%, 22% { opacity: 1; transform: translateY(0); } 25%, 100% { opacity: 0; transform: translateY(-10px); } }
+      @keyframes slideStep2 { 0%, 24% { opacity: 0; transform: translateY(10px); } 27%, 49% { opacity: 1; transform: translateY(0); } 52%, 100% { opacity: 0; transform: translateY(-10px); } }
+      @keyframes slideStep3 { 0%, 51% { opacity: 0; transform: translateY(10px); } 54%, 74% { opacity: 1; transform: translateY(0); } 77%, 100% { opacity: 0; transform: translateY(-10px); } }
+      @keyframes slideStep4 { 0%, 76% { opacity: 0; transform: translateY(10px); } 79%, 98% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; } }
+      @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+
+      .bg { fill: #0f172a; }
+      .header-bg { fill: #1e293b; stroke: #334155; stroke-width: 1; }
+      .card-bg { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 8; }
+      .accent { fill: #38bdf8; }
+      .badge-sim { fill: #fef3c7; stroke: #f59e0b; }
+      .text-light { fill: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      .text-muted { fill: #94a3b8; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      .text-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .chip-bg { fill: #312e81; stroke: #4f46e5; }
+      .chip-text { fill: #c7d2fe; font-family: ui-monospace, monospace; font-size: 11px; }
+
+      .step1 { animation: slideStep1 16s infinite; }
+      .step2 { animation: slideStep2 16s infinite; }
+      .step3 { animation: slideStep3 16s infinite; }
+      .step4 { animation: slideStep4 16s infinite; }
+      .bar { animation: progress 16s linear infinite; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" class="bg" />
+
+  <!-- Top App Navigation Bar -->
+  <rect x="20" y="20" width="920" height="56" rx="8" class="header-bg" />
+  <circle cx="48" cy="48" r="14" fill="#0284c7" />
+  <text x="74" y="53" class="text-light" font-size="16" font-weight="700">Enterprise Operations Copilot</text>
+  <rect x="330" y="38" width="86" height="20" rx="10" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="345" y="52" fill="#92400e" font-size="10" font-weight="700">SIMULATED</text>
+
+  <rect x="710" y="36" width="100" height="24" rx="4" fill="#0f766e" />
+  <text x="722" y="52" fill="#ccfbf1" font-size="11" font-weight="600">Approver Panel</text>
+  <rect x="820" y="36" width="80" height="24" rx="4" fill="#334155" />
+  <text x="838" y="52" fill="#cbd5e1" font-size="11" font-weight="600">Audit Log</text>
+
+  <!-- Timeline progress indicator -->
+  <rect x="20" y="80" width="920" height="4" fill="#334155" />
+  <rect x="20" y="80" width="0" height="4" fill="#38bdf8" class="bar" />
+
+  <!-- STEP 1: GS-001 Direct Lookup -->
+  <g class="step1">
+    <rect x="40" y="110" width="880" height="390" rx="10" class="card-bg" />
+    <text x="70" y="150" class="accent" font-size="14" font-weight="700">SCENARIO 1: CITATION-GROUNDED DIRECT POLICY LOOKUP (GS-001)</text>
+    <rect x="70" y="170" width="820" height="46" rx="6" fill="#0f172a" />
+    <text x="90" y="198" class="text-muted" font-size="14">You: What is the maximum duration for contractor access to customer PII?</text>
+
+    <rect x="70" y="235" width="820" height="230" rx="6" fill="#0f172a" stroke="#0369a1" stroke-width="1" />
+    <text x="95" y="270" class="accent" font-size="12" font-weight="700">ROUTE: TEXT (HYBRID RRF) · CONFIDENCE: HIGH · ZERO HALLUCINATION</text>
+    <text x="95" y="305" class="text-light" font-size="15" font-weight="600">Under POL-014 §3.4, contractor access to Customer PII is limited to 90 days maximum.</text>
+    <text x="95" y="335" class="text-muted" font-size="13">• A one-time 30-day exception may be granted under POL-014 §4 with documented business justification.</text>
+    <text x="95" y="360" class="text-muted" font-size="13">• Access is reviewed monthly under POL-022 §4 and terminated upon contract expiry.</text>
+
+    <!-- Citation Chips -->
+    <rect x="95" y="390" width="125" height="24" rx="4" class="chip-bg" />
+    <text x="105" y="406" class="chip-text">POL-014 §3.4</text>
+    <rect x="230" y="390" width="115" height="24" rx="4" class="chip-bg" />
+    <text x="240" y="406" class="chip-text">POL-014 §4</text>
+    <rect x="355" y="390" width="115" height="24" rx="4" class="chip-bg" />
+    <text x="365" y="406" class="chip-text">POL-022 §4</text>
+  </g>
+
+  <!-- STEP 2: GS-009 Hero Multi-Hop Graph Traversal -->
+  <g class="step2">
+    <rect x="40" y="110" width="880" height="390" rx="10" class="card-bg" />
+    <text x="70" y="150" class="accent" font-size="14" font-weight="700">SCENARIO 2: MULTI-HOP GRAPHRAG RESOLUTION (GS-009)</text>
+    <rect x="70" y="170" width="820" height="46" rx="6" fill="#0f172a" />
+    <text x="90" y="198" class="text-muted" font-size="14">You: A contractor needs read access to Atlas CRM. What approvals and controls are required?</text>
+
+    <rect x="70" y="235" width="820" height="230" rx="6" fill="#0f172a" stroke="#0d9488" stroke-width="1" />
+    <text x="95" y="270" fill="#2dd4bf" font-size="12" font-weight="700">ROUTE: GRAPH_TRAVERSAL · RECALL@5: 100% · COMPLETENESS: 90.6% vs BASELINE 34.8%</text>
+    <text x="95" y="300" class="text-light" font-size="14" font-weight="600">Requires 4 sequential approvals in PRC-012 §3 order:</text>
+    <text x="110" y="325" class="text-muted" font-size="13">1. Line Manager / Sponsor Approval (e.g. Tom Gallagher)</text>
+    <text x="110" y="345" class="text-muted" font-size="13">2. Data Owner: Mei Lin Tan (resolved via Atlas CRM stores Customer PII [Restricted])</text>
+    <text x="110" y="365" class="text-muted" font-size="13">3. Security Governance: Priya Nair (Head of Security Governance)</text>
+    <text x="110" y="385" class="text-muted" font-size="13">4. Privacy Officer: Elena Novak (Privacy Office)</text>
+    <text x="95" y="420" class="text-light" font-size="13">Mandatory Controls: Multi-factor Authentication (CTL-01), NDA (CTL-03), 90-day time-box (CTL-02).</text>
+  </g>
+
+  <!-- STEP 3: GS-022 Draft Action & SoD Warning -->
+  <g class="step3">
+    <rect x="40" y="110" width="880" height="390" rx="10" class="card-bg" />
+    <text x="70" y="150" class="accent" font-size="14" font-weight="700">SCENARIO 3: GOVERNED ACTION DRAFT &amp; SEPARATION-OF-DUTIES (GS-022)</text>
+    <rect x="70" y="170" width="820" height="46" rx="6" fill="#0f172a" />
+    <text x="90" y="198" class="text-muted" font-size="14">You: Raise an access request for contractor Alex Chen, sponsored by Tom Gallagher, for Atlas CRM (60 days).</text>
+
+    <!-- Draft Card -->
+    <rect x="70" y="230" width="820" height="240" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+    <text x="95" y="260" fill="#fbbf24" font-size="13" font-weight="700">DRAFT ACCESS REQUEST · IMMUTABLE (v1) · STATUS: PROPOSED</text>
+
+    <!-- Warning Banner -->
+    <rect x="95" y="275" width="770" height="34" rx="4" fill="#451a03" stroke="#b45309" />
+    <text x="110" y="296" fill="#fde68a" font-size="12" font-weight="600">⚠️ Separation-of-Duties: Sponsor Tom Gallagher is also Data Owner. Independent Security review enforced.</text>
+
+    <!-- Draft Details -->
+    <text x="95" y="335" class="text-muted" font-size="13">Requester: <tspan class="text-light">Alex Chen (Contractor)</tspan>  |  System: <tspan class="text-light">Atlas CRM (Restricted)</tspan>  |  Duration: <tspan class="text-light">60 days</tspan></text>
+    <text x="95" y="360" class="text-muted" font-size="13">Approval Chain: <tspan class="text-light">1. Sponsor → 2. Data Owner → 3. Security Gov → 4. Privacy Officer</tspan></text>
+
+    <!-- Action Buttons -->
+    <rect x="95" y="390" width="140" height="32" rx="4" fill="#2563eb" />
+    <text x="120" y="411" fill="#ffffff" font-size="13" font-weight="700">Submit Request ⏎</text>
+    <rect x="245" y="390" width="90" height="32" rx="4" fill="#334155" />
+    <text x="270" y="411" fill="#cbd5e1" font-size="13" font-weight="600">Cancel</text>
+    <text x="355" y="411" class="text-muted" font-size="11">Agent write boundary: No execution occurs without clicking Submit.</text>
+  </g>
+
+  <!-- STEP 4: Execution, Audit & Approver Panel -->
+  <g class="step4">
+    <rect x="40" y="110" width="880" height="390" rx="10" class="card-bg" />
+    <text x="70" y="150" class="accent" font-size="14" font-weight="700">SCENARIO 4: IDEMPOTENT EXECUTION, POSTGRES AUDIT &amp; APPROVER TIMELINE</text>
+
+    <rect x="70" y="175" width="400" height="300" rx="6" fill="#0f172a" stroke="#334155" />
+    <text x="90" y="205" class="text-light" font-size="14" font-weight="700">Request AR-0001 Timeline</text>
+    <text x="90" y="230" fill="#34d399" font-size="12">Status: Pending Organisational Approvals</text>
+    <text x="100" y="265" class="text-light" font-size="12">✓ Step 1: Sponsor (Tom Gallagher) — APPROVED</text>
+    <text x="100" y="295" class="accent" font-size="12">⏳ Step 2: Data Owner (Mei Lin Tan) — PENDING (SLA: 5 business days)</text>
+    <text x="100" y="325" class="text-muted" font-size="12">○ Step 3: Security Governance (Priya Nair)</text>
+    <text x="100" y="355" class="text-muted" font-size="12">○ Step 4: Privacy Officer (Elena Novak)</text>
+
+    <rect x="490" y="175" width="400" height="300" rx="6" fill="#0f172a" stroke="#334155" />
+    <text x="510" y="205" class="text-light" font-size="14" font-weight="700">Append-Only Postgres Audit Log</text>
+    <text x="510" y="235" class="text-code" fill="#94a3b8" font-size="11">ID #101: draft.created [Alex Chen, 60d]</text>
+    <text x="510" y="260" class="text-code" fill="#94a3b8" font-size="11">ID #102: draft.confirmed [by Tom Gallagher]</text>
+    <text x="510" y="285" class="text-code" fill="#38bdf8" font-size="11">ID #103: access_request.executed -> AR-0001</text>
+    <text x="510" y="310" class="text-code" fill="#34d399" font-size="11">ID #104: step_approved [seq: 1, role: sponsor]</text>
+    <text x="510" y="340" fill="#f59e0b" font-size="12">Isolated Approver Hook Guard: 403 on agent context</text>
+    <text x="510" y="365" class="text-muted" font-size="11">Repeated clicks replay AR-0001 (idempotent_replay: true)</text>
+  </g>
+</svg>

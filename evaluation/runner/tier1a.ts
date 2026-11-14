@@ -293,7 +293,11 @@ export async function runConfirmationCompliance(): Promise<ConfirmationComplianc
   return { passed, score: passed ? 1 : 0, checks };
 }
 
-const GRAPH_HOPS: Record<string, 1 | 2> = { graph_local: 1, graph_traversal: 2 };
+const GRAPH_HOPS: Record<string, 1 | 2> = {
+  graph_local: 1,
+  graph_traversal: 2,
+  action: 2,
+};
 
 /**
  * Deterministic graph seeding for Tier 1a (no router, no model): resolve entities in the

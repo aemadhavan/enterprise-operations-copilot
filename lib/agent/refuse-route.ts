@@ -46,7 +46,7 @@ export const REFUSE_EVIDENCE: RefuseEvidenceChunk[] = [
     effective_date: "2026-07-15",
     title: "Access Request and Approval Procedure",
     is_authoritative: true,
-    text: "All requests for access to Kestrel Financial Group systems and data follow the standard access request and approval workflow in PRC-012.",
+    text: "All requests for access to Kestrel Financial Group systems and data follow the standard access request and approval workflow in PRC-012. This governance corpus contains access policies and procedures only, not customer records or employee personal data; accessing customer data in operational systems such as Atlas CRM requires a standard access request under PRC-012.",
   },
 ];
 

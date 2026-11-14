@@ -52,4 +52,13 @@ describe("redact (FR-017)", () => {
     });
     expect(input.actor).toBe("tom@kestrel.example");
   });
+
+  it("redacts personal names not in the graph Person allow-list (T066, FR-017 Should)", () => {
+    const text =
+      "Please contact Jane Doe and Robert Smith regarding Atlas CRM approval by Tom Gallagher and Priya Nair";
+    const out = redact(text, { redactNames: true });
+    expect(out).toBe(
+      "Please contact [REDACTED:name] and [REDACTED:name] regarding Atlas CRM approval by Tom Gallagher and Priya Nair",
+    );
+  });
 });

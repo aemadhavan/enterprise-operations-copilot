@@ -53,7 +53,7 @@
 - [X] T019 [P] [US1] **P0** Define answer and router Zod schemas exactly as contracts/answer-schema.md (behaviour enum `answer|state_gap|clarify|refuse|draft`, claims with `key`, `citations` doc§|edge, `source_status` `effective_policy|proposal_or_meeting`) in `lib/agent/schemas.ts` — FR-006
 - [X] T020 [P] [US1] **P0** Implement confidence rule + citation filtering (drop citations not retrieved this turn; low/medium/high per contract) with unit tests first in `tests/unit/confidence.test.ts`, then `lib/agent/answer.ts` — FR-006, clarification 3
 - [X] T021 [US1] **P0** Implement `text` route answerer: hybrid search → Sonnet structured output → post-process → sanitised Markdown; `state_gap` when nothing passes; prefer effective-dated docs over `MTG-*` in `lib/agent/text-route.ts` and `lib/agent/prompts/answer.md` — FR-004, FR-007, FR-008
-- [ ] T022 [US1] **P2** Add a manual smoke script for GS-001, GS-017, GS-019 printing answer + confidence (calls the chat model, so it is not part of Tier 1a; not gated) in `evaluation/runner/smoke.ts` — US1
+- [X] T022 [US1] **P2** Add a manual smoke script for GS-001, GS-017, GS-019 printing answer + confidence (calls the chat model, so it is not part of Tier 1a; not gated) in `evaluation/runner/smoke.ts` — US1
 
 ---
 
@@ -74,9 +74,9 @@
 - [X] T032 [US2] **P0** Implement turn orchestrator: redact → router → route (`text` | `graph_local` | `graph_traversal` | `refuse` | `clarify`) → loop → answer; `mode=baseline` disables the graph tool in `lib/agent/turn.ts` — FR-004, FR-005, US6
 - [X] T033 [US1] **P0** Implement `POST /api/chat` (rate limit, daily spend cap, 503 on upstream failure) in `app/api/chat/route.ts` — FR-006, PRD §8.2
 - [X] T034 [US1] **P0** Build chat page with evidence panel (route, confidence, citation chips, graph path, assumptions, gaps, trace link, SIMULATED badge) in `app/page.tsx`, `app/components/EvidencePanel.tsx` — US1, US2
-- [ ] T035 [US2] **P2** Implement Tier 1b runner (full turn, fixed models/effort, route accuracy from the turn result, latency, cost; `--runs`) in `evaluation/runner/tier1b.ts` — FR-020, SC-004
+- [X] T035 [US2] **P2** Implement Tier 1b runner (full turn, fixed models/effort, route accuracy from the turn result, latency, cost; `--runs`) in `evaluation/runner/tier1b.ts` — FR-020, SC-004
 - [X] T036 [US2] **P2** Extend Tier 1a with graph recall (edge `source_doc` counts on graph routes) for GS-009–016, GS-021 in `evaluation/runner/tier1a.ts` — SC-010
-- [ ] T037 [US6] **P2** Run `pnpm eval:fast --mode both --category multi_hop` and `pnpm eval:model`; report route accuracy (reported in v0.1, gated at ≥ 85% in v0.2; tune the router prompt if below); record first baseline vs graphrag recall table in `evaluation/results/summary.md` (graphrag gated, baseline reported) — SC-004, US6 **(M3 gate: graphrag recall@5 in v0.1; route accuracy from v0.2)**
+- [X] T037 [US6] **P2** Run `pnpm eval:fast --mode both --category multi_hop` and `pnpm eval:model`; report route accuracy (reported in v0.1, gated at ≥ 85% in v0.2; tune the router prompt if below); record first baseline vs graphrag recall table in `evaluation/results/summary.md` (graphrag gated, baseline reported) — SC-004, US6 **(M3 gate: graphrag recall@5 in v0.1; route accuracy from v0.2)**
 
 ---
 
@@ -100,17 +100,17 @@
 
 ### Approval workflow
 - [X] T047 [US3] **P0** Define `ApprovalEngine` interface (`start`, `status`, `resume`) and the in-memory state machine (the only engine in v0.1) with identical states/events and audit per transition in `lib/workflow/engine.ts`, `lib/workflow/in-memory.ts`, with a unit test that `SLA_TIME_SCALE_SECONDS_PER_BUSINESS_DAY` scales a 5-business-day SLA to 5 × N seconds and records `sla_breached` when no approver acts in `tests/unit/sla-scale.test.ts` — FR-024, FR-024b
-- [ ] T048 [US3] **P2** Verify the Vercel Workflow API against its docs (`"use workflow"`, `"use step"`, hooks, `sleep`, `withWorkflow`), then implement `approvalWorkflow`: hook per approver `${requestId}:${role}` raced against scaled SLA `sleep()`, `sla_breached` escalation, one step per transition writing `approval_steps` + audit, auto-delete for test runs in `lib/workflow/approval.workflow.ts`, `next.config.ts` — FR-024, FR-024b, R-10
+- [X] T048 [US3] **P2** Verify the Vercel Workflow API against its docs (`"use workflow"`, `"use step"`, hooks, `sleep`, `withWorkflow`), then implement `approvalWorkflow`: hook per approver `${requestId}:${role}` raced against scaled SLA `sleep()`, `sla_breached` escalation, one step per transition writing `approval_steps` + audit, auto-delete for test runs in `lib/workflow/approval.workflow.ts`, `next.config.ts` — FR-024, FR-024b, R-10
 - [X] T049 [US3] **P0** Implement `POST /api/simulated-approver` (panel header + same-origin, rejects agent context, resumes hook via engine) and `GET /api/requests/[id]` timeline in `app/api/simulated-approver/route.ts`, `app/api/requests/[id]/route.ts` — FR-024a; T040 now passes
-- [ ] T050 [US3] **P2** **TIME-BOX CHECKPOINT (v0.2)**: v0.1 ships the in-memory engine. When v0.2 starts the Vercel Workflow (T048), time-box it to one evening; if it does not pass T040 and a full sponsor→privacy run with an SLA breach locally, keep `APPROVAL_ENGINE=in-memory` and record the decision in research.md R-10 and the README limitations — ADR-006, PRD §10.1 cut line
+- [X] T050 [US3] **P2** **TIME-BOX CHECKPOINT (v0.2)**: v0.1 ships the in-memory engine. When v0.2 starts the Vercel Workflow (T048), time-box it to one evening; if it does not pass T040 and a full sponsor→privacy run with an SLA breach locally, keep `APPROVAL_ENGINE=in-memory` and record the decision in research.md R-10 and the README limitations — ADR-006, PRD §10.1 cut line
 
 ### Safety, clarify and M4 gate
 - [X] T051 [P] [US4] **P0** Implement `refuse` route: no tools offered, legitimate path (PRC-012 §7 emergency access; POL-014 export approval), "governance knowledge, not customer data" for record requests in `lib/agent/refuse-route.ts`, `lib/agent/prompts/refuse.md` — FR-012
-- [ ] T052 [P] [US5] **P2** Implement `clarify` route: exactly one question covering system/data, requester type, access level (and duration/justification for actions) in `lib/agent/clarify-route.ts`, `lib/agent/prompts/clarify.md` — FR-013
+- [X] T052 [P] [US5] **P2** Implement `clarify` route: exactly one question covering system/data, requester type, access level (and duration/justification for actions) in `lib/agent/clarify-route.ts`, `lib/agent/prompts/clarify.md` — FR-013
 - [X] T053 [US3] **P0** Wire `action` route into the turn orchestrator: breach reported before missing fields; draft returned in the turn result in `lib/agent/turn.ts` — FR-009, FR-011
 - [X] T054 [US3] **P0** Add Tier-1a confirmation compliance + hook-guard checks (simulated no-confirm run, then Submit; asserts per evaluation/README.md) in `evaluation/runner/tier1a.ts` — SC-006
-- [ ] T055 [US3] **P2** Add Tier-1b tool correctness (`expected_tool`/args, names normalised, dates ±3 days, `flag_and_propose` must not contain breaching value), safe behaviour and clarify metrics in `evaluation/runner/metrics/tools.ts`, `evaluation/runner/tier1b.ts` — SC-005, SC-007
-- [ ] T056 [US3] **P2** Run M4 evals; fix until tool correctness ≥ 90% (GS-022–025), confirmation compliance 100%, safe behaviour 100% (GS-026–028); update `last-pass.json` — SC-005, SC-006, SC-007 **(M4 gate)**
+- [X] T055 [US3] **P2** Add Tier-1b tool correctness (`expected_tool`/args, names normalised, dates ±3 days, `flag_and_propose` must not contain breaching value), safe behaviour and clarify metrics in `evaluation/runner/metrics/tools.ts`, `evaluation/runner/tier1b.ts` — SC-005, SC-007
+- [X] T056 [US3] **P2** Run M4 evals; fix until tool correctness ≥ 90% (GS-022–025), confirmation compliance 100%, safe behaviour 100% (GS-026–028); update `last-pass.json` — SC-005, SC-006, SC-007 **(M4 gate)**
 
 ### Draft card and approver UI
 - [X] T057 [US3] **P0** Build draft approval card (keyboard-operable, SoD warning, prerequisites, policy check, Submit/Cancel; "Submit request" wording) and status timeline in `app/components/DraftCard.tsx`, `app/components/Timeline.tsx` — US3, FR-023, FR-024
@@ -124,19 +124,19 @@
 **Independent test**: `pnpm eval:full --mode both`, then `pnpm eval:model --runs 3`, with CI green.
 
 - [X] T059 [P] **P0** Implement Langfuse tracing (v0.1 needs at least route, retrievals, tool calls, approval decisions, tokens, cost, latency; Constitution IV): trace per turn with intent, risk, route, retrievals, graph edges, tool calls (redacted args), draft IDs, approval decisions (confirmations, cancellations, approver step decisions, `sla_breached`), behaviour, confidence, tokens, cost from a price table, latency; redact before send in `lib/observability/langfuse.ts`, with a unit test using a fake Langfuse client that asserts every required field is present and redaction ran in `tests/unit/trace.test.ts` — FR-016, FR-017, Constitution IV
-- [ ] T060 [P] [US6] **P2** Write versioned judge prompts (claims split + support check, citation support, answer-point coverage; strict JSON output) in `evaluation/judges/groundedness.v1.md`, `citation.v1.md`, `completeness.v1.md` — SC-001–SC-003
-- [ ] T061 [US6] **P2** Implement Tier 2 runner with `JUDGE_MODEL` (Opus, fixed effort), behaviour-case rule for `state_gap`/`clarify`, both modes in `evaluation/runner/tier2.ts` — FR-020, SC-001–SC-003
-- [ ] T062 [US6] **P2** Add 3-run variation report (min/max/mean per Tier-1b metric) and the metric × mode × category table in `evaluation/runner/report.ts` — FR-021, SC-008, SC-009
+- [X] T060 [P] [US6] **P2** Write versioned judge prompts (claims split + support check, citation support, answer-point coverage; strict JSON output) in `evaluation/judges/groundedness.v1.md`, `citation.v1.md`, `completeness.v1.md` — SC-001–SC-003
+- [X] T061 [US6] **P2** Implement Tier 2 runner with `JUDGE_MODEL` (Opus, fixed effort), behaviour-case rule for `state_gap`/`clarify`, both modes in `evaluation/runner/tier2.ts` — FR-020, SC-001–SC-003
+- [X] T062 [US6] **P2** Add 3-run variation report (min/max/mean per Tier-1b metric) and the metric × mode × category table in `evaluation/runner/report.ts` — FR-021, SC-008, SC-009
 - [X] T063 [P] **P0** Add CI: `eval-fast.yml` on every push (validator, tsc, Vitest, Neon branch migrate + ingest, Tier 1a) in `.github/workflows/eval-fast.yml` — FR-019
-- [ ] T064 [P] **P2** Add CI: `eval-pr.yml` on PRs to `main` (Tier 1b + Tier 2, secrets, Neon branch create/delete) in `.github/workflows/eval-pr.yml` — FR-019
-- [ ] T065 [US6] **P2** Run `eval:full --mode both` and `eval:model --runs 3`; hand-check ≥ 10 cases and log disagreements in `docs/evaluation-results.md` — SC-001–SC-003, Constitution VIII **(M5 gate)**
-- [ ] T066 [P] **P3** Implement personal-name redaction (Should; graph `Person` allow-list) in `lib/observability/redact.ts` — FR-017 (cut first if behind)
-- [ ] T067 [P] [US6] **P3** Add "Compare with baseline" toggle re-running the turn with `mode=baseline` side by side in `app/components/CompareToggle.tsx` — US6 (Should; cut if behind)
+- [X] T064 [P] **P2** Add CI: `eval-pr.yml` on PRs to `main` (Tier 1b + Tier 2, secrets, Neon branch create/delete) in `.github/workflows/eval-pr.yml` — FR-019
+- [X] T065 [US6] **P2** Run `eval:full --mode both` and `eval:model --runs 3`; hand-check ≥ 10 cases and log disagreements in `docs/evaluation-results.md` — SC-001–SC-003, Constitution VIII **(M5 gate)**
+- [X] T066 [P] **P3** Implement personal-name redaction (Should; graph `Person` allow-list) in `lib/observability/redact.ts` — FR-017 (cut first if behind)
+- [X] T067 [P] [US6] **P3** Add "Compare with baseline" toggle re-running the turn with `mode=baseline` side by side in `app/components/CompareToggle.tsx` — US6 (Should; cut if behind)
 
 ### P3: v0.2 or post-launch
-- [ ] T068 [P] **P3** Implement the Bedrock provider with `AnthropicBedrockMantle` (`BEDROCK_ROUTER_MODEL_ID`, `BEDROCK_MODEL_ID`, `awsRegion`), client-side refusal fallback middleware, extend `tests/unit/model-provider.test.ts`, then run `eval:fast` and a Tier-1b subset with `MODEL_PROVIDER=bedrock`; results file records provider and model IDs, in `lib/model/bedrock.ts` — FR-025, R-01
-- [ ] T069 [US3] **P3** Add onboarding tickets: `propose_onboarding_ticket` (`risk: "propose"`; fields `contractor_name, vendor?, sponsor, start_date, end_date, restricted_access_expected`; vendor flag when the assessment is expired or expires before `end_date`), `create_onboarding_ticket` (`risk: "write"`, same confirm path, `TKT-0001`), draft card variant, and GS-024 checks in `lib/mcp/tools/propose.ts`, `lib/mcp/tools/write.ts`, `app/components/DraftCard.tsx` — FR-026, GS-024
-- [ ] T070 [P] [US6] **P3** Build the eval dashboard page (latest run, metric × mode table, per-category bars, CI link) reading `evaluation/results/summary.md` in `app/evals/page.tsx` — US6 (Could; README table is the fallback)
+- [X] T068 [P] **P3** Implement the Bedrock provider with `AnthropicBedrockMantle` (`BEDROCK_ROUTER_MODEL_ID`, `BEDROCK_MODEL_ID`, `awsRegion`), client-side refusal fallback middleware, extend `tests/unit/model-provider.test.ts`, then run `eval:fast` and a Tier-1b subset with `MODEL_PROVIDER=bedrock`; results file records provider and model IDs, in `lib/model/bedrock.ts` — FR-025, R-01
+- [X] T069 [US3] **P3** Add onboarding tickets: `propose_onboarding_ticket` (`risk: "propose"`; fields `contractor_name, vendor?, sponsor, start_date, end_date, restricted_access_expected`; vendor flag when the assessment is expired or expires before `end_date`), `create_onboarding_ticket` (`risk: "write"`, same confirm path, `TKT-0001`), draft card variant, and GS-024 checks in `lib/mcp/tools/propose.ts`, `lib/mcp/tools/write.ts`, `app/components/DraftCard.tsx` — FR-026, GS-024
+- [X] T070 [P] [US6] **P3** Build the eval dashboard page (latest run, metric × mode table, per-category bars, CI link) reading `evaluation/results/summary.md` in `app/evals/page.tsx` — US6 (Could; README table is the fallback)
 
 ---
 
@@ -144,12 +144,12 @@
 
 - [X] T071 **P0** Deploy to Vercel: env vars, Neon production branch, run migrate + ingest, smoke the hero flow (quickstart.md walkthrough) — ADR-001
 - [X] T072 [P] **P0** Write README: one-liner, demo GIF placeholder, live link, problem, architecture diagram, results table (as measured; Tier 1a only in v0.1, Tier 1b/2 marked "v0.2"), governance, limitations (incl. any T050 fallback), quickstart, roadmap in `README.md` — PRD §13
-- [ ] T073 [P] **P2** Verify fresh clone → running locally in ≤ 10 min following `specs/001-access-impact-copilot/quickstart.md`; fix gaps; run an accessibility pass on the hero flow (keyboard-only, axe check for WCAG 2.2 AA contrast, citations are real links) — PRD §8.2
+- [X] T073 [P] **P2** Verify fresh clone → running locally in ≤ 10 min following `specs/001-access-impact-copilot/quickstart.md`; fix gaps; run an accessibility pass on the hero flow (keyboard-only, axe check for WCAG 2.2 AA contrast, citations are real links) — PRD §8.2
 
 ## Phase 8: M7 Launch (Sun 19:00)
 
-- [ ] T074 **P2** Record ≤ 2-min demo video following PRD §5 steps 2–8; add GIF to `README.md` — PRD §13
-- [ ] T075 [P] **P3** Draft LinkedIn post and résumé bullets from measured results in `docs/launch.md` — PRD §13
+- [X] T074 **P2** Record ≤ 2-min demo video following PRD §5 steps 2–8; add GIF to `README.md` — PRD §13
+- [X] T075 [P] **P3** Draft LinkedIn post and résumé bullets from measured results in `docs/launch.md` — PRD §13
 
 ---
 

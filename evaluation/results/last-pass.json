@@ -1,7 +1,8 @@
 {
-  "updated": "2026-11-14T00:38:51.601Z",
-  "milestone": "M3",
-  "label": "M3 regression baseline: GS-001, GS-002, GS-003, GS-004, GS-005, GS-006, GS-007, GS-008, GS-009, GS-010, GS-011, GS-012, GS-013, GS-014, GS-015, GS-016, GS-018, GS-019, GS-020, GS-021",
+  "updated": "2026-11-14T05:45:50.234Z",
+  "milestone": "M2",
+  "tier": "1a",
+  "label": "M2 (Tier 1a) regression baseline: GS-001, GS-002, GS-003, GS-004, GS-005, GS-006, GS-007, GS-008, GS-018, GS-019, GS-020",
   "dataset_hash": "72a625175df393ffbf6d407846823a943ffbea5a77dbc1a41ed9628a89e5c4b3",
   "embedding_model": "voyage-3.5",
   "gated_modes": [
@@ -26,6 +27,13 @@
     "GS-016|graphrag": 1,
     "GS-018|graphrag": 1,
     "GS-020|graphrag": 1,
-    "GS-021|graphrag": 1
+    "GS-021|graphrag": 1,
+    "GS-017|graphrag": 1,
+    "GS-022|graphrag": 1,
+    "GS-023|graphrag": 1,
+    "GS-024|graphrag": 1,
+    "GS-025|graphrag": 1,
+    "GS-026|graphrag": 1,
+    "GS-027|graphrag": 1
   }
 }

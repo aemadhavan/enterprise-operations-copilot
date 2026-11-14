@@ -62,11 +62,19 @@ async function ftsIds(query: string): Promise<string[]> {
 }
 
 async function vectorIds(query: string, embedder: Embedder): Promise<string[]> {
-  const vector = toVectorLiteral(await embedder.embedQuery(query));
-  const rows = await sql`
-    SELECT id::text FROM chunks WHERE embedding IS NOT NULL
-    ORDER BY embedding <=> ${vector}::vector, id LIMIT ${ARM_LIMIT}`;
-  return (rows as { id: string }[]).map((r) => r.id);
+  try {
+    const vector = toVectorLiteral(await embedder.embedQuery(query));
+    const rows = await sql`
+      SELECT id::text FROM chunks WHERE embedding IS NOT NULL
+      ORDER BY embedding <=> ${vector}::vector, id LIMIT ${ARM_LIMIT}`;
+    return (rows as { id: string }[]).map((r) => r.id);
+  } catch (err) {
+    const status =
+      (err as { statusCode?: number; status?: number }).statusCode ??
+      (err as { status?: number }).status;
+    if (status === 429) return [];
+    throw err;
+  }
 }
 
 export async function hybridSearch(

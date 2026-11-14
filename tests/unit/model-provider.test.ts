@@ -98,4 +98,28 @@ describe("model provider (FR-025, ADR-010)", () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(create.mock.calls[0][0]).not.toHaveProperty("fallbacks");
   });
+
+  it("handles Bedrock refusal fallback middleware (T068, R-01, R-05)", async () => {
+    const { createBedrockClient, withBedrockRefusalFallback } = await import("@/lib/model/bedrock");
+    const fallback = vi.fn(async () => ({ stop_reason: "end_turn", content: [] }));
+    const result = await withBedrockRefusalFallback(
+      async () => ({ stop_reason: "refusal", content: [] }),
+      fallback,
+    );
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(result.stop_reason).toBe("end_turn");
+
+    const client = createBedrockClient(
+      "agent",
+      {
+        AWS_REGION: "ap-southeast-2",
+        BEDROCK_ROUTER_MODEL_ID: "anthropic.claude-haiku-5-5",
+        BEDROCK_MODEL_ID: "anthropic.claude-sonnet-5-5",
+        JUDGE_MODEL: "claude-opus-5-5",
+      },
+      { messages: { create: vi.fn(async () => ({ id: "m1", stop_reason: "end_turn" })) } } as never,
+    );
+    expect(client.provider).toBe("bedrock");
+    expect(client.model).toBe("anthropic.claude-sonnet-5-5");
+  });
 });

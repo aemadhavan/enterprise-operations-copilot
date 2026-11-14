@@ -365,12 +365,18 @@ describe("turn orchestrator (FR-004, FR-005, FR-009, FR-011, FR-012, US3, US4, U
     expect(r.answer.claims[1].text).toMatch(/missing sponsor and justification/i);
   });
 
-  it("clarify route not built yet runs no tools and mentions T052", async () => {
+  it("clarify route: runs no tools and returns behaviour=clarify with one focused question (T052, FR-013)", async () => {
     const r = await runTurn("What approvals do I need?", {
       route: async () => decision("clarify"),
     });
-    expect(r.answer.behaviour).toBe("state_gap");
-    expect(r.answer.gaps[0]).toMatch(/T052/);
+    expect(r.route).toBe("clarify");
+    expect(r.answer.behaviour).toBe("clarify");
+    expect(r.answer.claims).toEqual([]);
+    expect(r.answer.clarifying_question).toMatch(/target system or data/i);
+    expect(r.answer.clarifying_question).toMatch(/employee or a? ?contractor/i);
+    expect(r.answer.clarifying_question).toMatch(/access level/i);
+    expect((r.answer.clarifying_question ?? "").match(/\?/g)).toHaveLength(1);
     expect(r.tool_calls).toEqual([]);
+    expect(r.draft).toBeNull();
   });
 });

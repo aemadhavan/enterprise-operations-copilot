@@ -113,6 +113,7 @@ function createHttpLangfuseClient(): LangfuseClientLike {
             "content-type": "application/json",
             authorization: `Basic ${auth}`,
           },
+          signal: AbortSignal.timeout(2500),
           body: JSON.stringify({
             batch: [
               {
@@ -146,6 +147,7 @@ function createHttpLangfuseClient(): LangfuseClientLike {
             "content-type": "application/json",
             authorization: `Basic ${auth}`,
           },
+          signal: AbortSignal.timeout(2500),
           body: JSON.stringify({
             batch: [
               {

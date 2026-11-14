@@ -192,3 +192,139 @@ export async function executeAccessRequest(
     payload: draft.payload,
   };
 }
+
+export type ExecuteOnboardingResult =
+  | {
+      status: "executed";
+      ticket_id: string;
+      ticket_status: "open";
+      idempotent_replay: boolean;
+      payload: AccessRequestPayload;
+    }
+  | { status: "not_found" }
+  | { status: "draft_not_submittable"; draft_status: string }
+  | { status: "confirmation_required" };
+
+/**
+ * Idempotent confirmation execution for onboarding-ticket drafts (T069, FR-026, FR-010):
+ * 1. Requires a matching `ConfirmationEvent` in context.
+ * 2. Rejects `superseded` / `cancelled` drafts with `draft_not_submittable`.
+ * 3. Inserts into `onboarding_tickets` with `ON CONFLICT (draft_id) DO NOTHING` (`TKT-0001` sequence)
+ *    and writes `confirmed` + `executed` rows to `audit_log`.
+ */
+export async function executeOnboardingTicket(
+  draft_id: string,
+  confirmation: ConfirmationEvent | undefined,
+  deps: ExecuteDeps = {},
+): Promise<ExecuteOnboardingResult> {
+  if (
+    !confirmation ||
+    confirmation.draft_id !== draft_id ||
+    !confirmation.confirmed_by?.trim()
+  ) {
+    return { status: "confirmation_required" };
+  }
+
+  const load = deps.loadDraft ?? ((id) => getDraft(id));
+  const audit = deps.audit ?? writeAudit;
+
+  const draft = await load(draft_id);
+  if (!draft) return { status: "not_found" };
+
+  if (draft.status === "superseded" || draft.status === "cancelled") {
+    return { status: "draft_not_submittable", draft_status: draft.status };
+  }
+
+  if (draft.status === "confirmed") {
+    const existing = (await sql`
+      SELECT ticket_id, status
+      FROM onboarding_tickets
+      WHERE draft_id = ${draft_id}::uuid
+    `) as { ticket_id: string; status: "open" }[];
+    if (existing[0]) {
+      return {
+        status: "executed",
+        ticket_id: existing[0].ticket_id,
+        ticket_status: existing[0].status,
+        idempotent_replay: true,
+        payload: draft.payload,
+      };
+    }
+  }
+
+  const contractor_name = draft.payload.contractor_name ?? draft.payload.requester_name;
+  const vendor = draft.payload.vendor ?? null;
+  const sponsor = draft.payload.sponsor || "TBD (sponsor required)";
+  const start_date = draft.payload.start_date ?? "2026-12-01";
+  const end_date = draft.payload.end_date ?? "2027-02-28";
+  const restricted_access_expected = Boolean(draft.payload.restricted_access_expected);
+  const vendor_flag = draft.payload.vendor_flag ?? null;
+
+  const inserted = (await sql`
+    INSERT INTO onboarding_tickets (
+      draft_id, contractor_name, vendor, sponsor,
+      start_date, end_date, restricted_access_expected, vendor_flag, status
+    ) VALUES (
+      ${draft_id}::uuid,
+      ${contractor_name},
+      ${vendor},
+      ${sponsor},
+      ${start_date}::date,
+      ${end_date}::date,
+      ${restricted_access_expected},
+      ${vendor_flag ? JSON.stringify(vendor_flag) : null}::jsonb,
+      'open'
+    )
+    ON CONFLICT (draft_id) DO NOTHING
+    RETURNING ticket_id, status
+  `) as { ticket_id: string; status: "open" }[];
+
+  if (inserted.length === 1) {
+    await sql`
+      UPDATE drafts
+      SET status = 'confirmed'
+      WHERE draft_id = ${draft_id}::uuid AND status = 'proposed'
+    `;
+    await audit({
+      actor: confirmation.confirmed_by,
+      event: "confirmed",
+      draft_id,
+      ticket_id: inserted[0].ticket_id,
+      details: { confirmed_at: confirmation.at },
+      policy_citations: draft.policy_citations,
+    });
+    await audit({
+      actor: confirmation.confirmed_by,
+      event: "executed",
+      draft_id,
+      ticket_id: inserted[0].ticket_id,
+      details: {
+        tool: "create_onboarding_ticket",
+        simulated: true,
+      },
+      policy_citations: draft.policy_citations,
+    });
+
+    return {
+      status: "executed",
+      ticket_id: inserted[0].ticket_id,
+      ticket_status: inserted[0].status,
+      idempotent_replay: false,
+      payload: draft.payload,
+    };
+  }
+
+  const existing = (await sql`
+    SELECT ticket_id, status
+    FROM onboarding_tickets
+    WHERE draft_id = ${draft_id}::uuid
+  `) as { ticket_id: string; status: "open" }[];
+
+  return {
+    status: "executed",
+    ticket_id: existing[0].ticket_id,
+    ticket_status: existing[0].status,
+    idempotent_replay: true,
+    payload: draft.payload,
+  };
+}

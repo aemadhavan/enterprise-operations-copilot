@@ -43,13 +43,15 @@ export function voyageBackend(config: Config): EmbeddingBackend {
   return {
     model: config.EMBEDDING_MODEL,
     async embed(texts, inputType) {
-      const res = await withRateLimitRetry(() =>
-        client.embed({
-          input: texts,
-          model: config.EMBEDDING_MODEL,
-          inputType,
-          outputDimension: EMBEDDING_DIM,
-        }),
+      const res = await withRateLimitRetry(
+        () =>
+          client.embed({
+            input: texts,
+            model: config.EMBEDDING_MODEL,
+            inputType,
+            outputDimension: EMBEDDING_DIM,
+          }),
+        inputType === "query" ? { retries: 1, baseMs: 2_000 } : undefined,
       );
       const data = [...(res.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
       return data.map((d) => d.embedding ?? []);

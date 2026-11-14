@@ -1,0 +1,97 @@
+name: eval-pr (Tier 1b + Tier 2)
+
+on:
+  pull_request:
+    branches: ["main", "master", "001-access-impact-copilot"]
+  workflow_dispatch:
+
+concurrency:
+  group: eval-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tier-1b-and-tier-2:
+    name: Tier-1b Model Eval & Tier-2 Opus Judge Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL || 'https://jp.cloud.langfuse.com' }}
+      EMBEDDING_PROVIDER: voyage
+      MODEL_PROVIDER: anthropic
+      ROUTER_MODEL: claude-haiku-5-5
+      ANTHROPIC_MODEL: claude-sonnet-5-5
+      JUDGE_MODEL: claude-opus-5-5
+      APPROVAL_ENGINE: in-memory
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create ephemeral Neon branch (when NEON_API_KEY is configured)
+        id: neon-branch
+        if: ${{ secrets.NEON_API_KEY != '' && secrets.NEON_PROJECT_ID != '' }}
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: pr-${{ github.event.number || github.run_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate seed dataset and golden suite
+        run: python scripts/validate_seed.py
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Database migrate & ingest corpus + graph seed
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+        run: |
+          pnpm db:migrate
+          pnpm ingest
+
+      - name: Tier-1b model evaluation gate (SC-004, SC-005, SC-007)
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+        run: pnpm eval:model --milestone M4
+
+      - name: Tier-2 Opus judge evaluation gate (SC-001, SC-002, SC-003)
+        env:
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+        run: pnpm eval:full --mode both --milestone M5
+
+      - name: Upload evaluation results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-pr-results
+          path: evaluation/results/
+
+      - name: Delete ephemeral Neon branch
+        if: ${{ always() && steps.neon-branch.outcome == 'success' }}
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: pr-${{ github.event.number || github.run_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}

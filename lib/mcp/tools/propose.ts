@@ -1,16 +1,24 @@
 import { z } from "zod";
-import { createDraft, type CreateDraftInput, type CreateDraftResult } from "@/lib/drafts/drafts";
+import {
+  createDraft,
+  createOnboardingDraft,
+  type CreateDraftInput,
+  type CreateDraftResult,
+  type CreateOnboardingDraftInput,
+} from "@/lib/drafts/drafts";
 import { checkPolicy, type PolicyCheckInput, type PolicyCheckResult } from "@/lib/policy/checks";
 import { defineTool } from "../registry";
 
 export interface ProposeToolDeps {
   check: (input: PolicyCheckInput) => PolicyCheckResult | Promise<PolicyCheckResult>;
   draft: (input: CreateDraftInput) => Promise<CreateDraftResult>;
+  draftOnboarding?: (input: CreateOnboardingDraftInput) => Promise<CreateDraftResult>;
 }
 
 export const defaultProposeDeps: ProposeToolDeps = {
   check: checkPolicy,
   draft: (input) => createDraft(input),
+  draftOnboarding: (input) => createOnboardingDraft(input),
 };
 
 export const CheckPolicyInput = z.strictObject({
@@ -35,12 +43,24 @@ export const ProposeAccessRequestInput = z.strictObject({
   supersedes_draft_id: z.string().optional().describe("UUID of an existing proposed draft to supersede"),
 });
 
+export const ProposeOnboardingTicketInput = z.strictObject({
+  contractor_name: z.string().describe("Full name of the contractor being onboarded"),
+  vendor: z.string().optional().describe("Vendor / consulting firm name, e.g. Northgate Consulting"),
+  sponsor: z.string().optional().describe("Stated Kestrel line-manager sponsor, if known"),
+  start_date: z.string().describe("Engagement start date in ISO YYYY-MM-DD format"),
+  end_date: z.string().describe("Engagement end date in ISO YYYY-MM-DD format"),
+  restricted_access_expected: z
+    .boolean()
+    .describe("Whether the contractor is expected to need access to Restricted systems/data"),
+});
+
 /**
- * Policy-check (`read`) and draft-proposal (`propose`) MCP tools (T044, FR-009, FR-014, contracts/mcp-tools.md).
- * `propose_access_request` re-runs `check_policy` and the missing-fields check in code; it never creates
- * an `access_requests` business record.
+ * Policy-check (`read`) and draft-proposal (`propose`) MCP tools (T044, T069, FR-009, FR-014, FR-026, contracts/mcp-tools.md).
+ * `propose_access_request` and `propose_onboarding_ticket` re-run `check_policy` / vendor checks in code
+ * and never create an `access_requests` or `onboarding_tickets` business record.
  */
 export function proposeTools(deps: ProposeToolDeps = defaultProposeDeps) {
+  const draftOnboarding = deps.draftOnboarding ?? ((input) => createOnboardingDraft(input));
   return [
     defineTool({
       name: "check_policy",
@@ -59,6 +79,15 @@ export function proposeTools(deps: ProposeToolDeps = defaultProposeDeps) {
       allowed_roles: ["agent"],
       input: ProposeAccessRequestInput,
       handler: async (input) => deps.draft(input),
+    }),
+    defineTool({
+      name: "propose_onboarding_ticket",
+      description:
+        "Create or supersede an immutable contractor onboarding-ticket DRAFT row only (status = proposed, FR-026). Flags supplier security assessments that are expired or expire before end_date (VND-002) and notes prerequisites (PRC-007, POL-022). Never executes the ticket.",
+      risk: "propose",
+      allowed_roles: ["agent"],
+      input: ProposeOnboardingTicketInput,
+      handler: async (input) => draftOnboarding(input),
     }),
   ];
 }

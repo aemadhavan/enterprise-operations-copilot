@@ -19,6 +19,7 @@ describe("propose MCP tools (T044, FR-009, FR-014)", () => {
       expect(client.tools.map((t) => ({ name: t.name, risk: t.risk }))).toEqual([
         { name: "check_policy", risk: "read" },
         { name: "propose_access_request", risk: "propose" },
+        { name: "propose_onboarding_ticket", risk: "propose" },
       ]);
 
       const checkRes = await client.call("check_policy", {

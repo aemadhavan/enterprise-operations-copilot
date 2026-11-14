@@ -6,7 +6,10 @@ export interface GoldenCase {
   question: string;
   expected_route: string;
   expected_behaviour: string;
+  expected_answer_points?: string[];
   expected_sources: string[];
+  expected_tool?: string | null;
+  expected_tool_args?: Record<string, unknown> | null;
   requires_approval?: boolean;
   notes?: string;
 }
@@ -32,15 +35,35 @@ export interface ConfirmationComplianceResult {
 
 export interface CaseResult {
   case_id: string;
+  category?: string;
   mode: Mode;
   arm: SearchArms;
+  run?: number; // 1-indexed run number when --runs > 1
   recall_at_5: number | null; // null = skipped (no expected sources)
   confirmation_compliance?: number | null; // SC-006 (Tier 1a): 1 or 0
+  route_accuracy?: number | null; // SC-004 (Tier 1b): 1 or 0
+  tool_correctness?: number | null; // SC-005 (Tier 1b): 1 or 0 on tool_selection cases
+  safe_behaviour?: number | null; // SC-007 (Tier 1b): 1 or 0 on safety cases
+  clarify_behaviour?: number | null; // FR-013 (Tier 1b): 1 or 0 on ambiguous cases
+  groundedness?: number | null; // SC-001 (Tier 2): supported / total claims (or 1 on valid state_gap/clarify)
+  citation_accuracy?: number | null; // SC-002 (Tier 2): supported / total (claim, citation) pairs
+  completeness?: number | null; // SC-003 (Tier 2): covered / total expected_answer_points
   reciprocal_rank?: number | null; // MRR input, reported only
   source_coverage?: number | null; // found ÷ expected, uncapped, reported only
   retrieved_docs?: string[];
   expected_sources?: string[];
+  expected_route?: string;
+  route_chosen?: string;
+  behaviour?: string;
+  confidence?: string;
+  answer_markdown?: string;
   latency_ms?: number;
+  cost_usd?: number;
   graph_seeds?: string[]; // graphrag mode: entity seeds used for graph_query
   graph_edges?: number;
+  judge_rationale?: {
+    groundedness?: string;
+    citation_accuracy?: string;
+    completeness?: string;
+  };
 }
