@@ -73,9 +73,29 @@ export type FinalAnswer = z.infer<typeof FinalAnswer>;
 
 export type Confidence = "low" | "medium" | "high";
 
-/** JSON Schema for `output_config.format` (Zod 4 native conversion). */
+const UNSUPPORTED_STRICT_KEYS = new Set([
+  "$schema",
+  "minimum",
+  "maximum",
+  "exclusiveMinimum",
+  "exclusiveMaximum",
+  "minLength",
+  "maxLength",
+]);
+
+function stripUnsupportedStrictKeys(val: unknown): unknown {
+  if (Array.isArray(val)) return val.map(stripUnsupportedStrictKeys);
+  if (val && typeof val === "object") {
+    return Object.fromEntries(
+      Object.entries(val as Record<string, unknown>)
+        .filter(([k]) => !UNSUPPORTED_STRICT_KEYS.has(k))
+        .map(([k, v]) => [k, stripUnsupportedStrictKeys(v)]),
+    );
+  }
+  return val;
+}
+
+/** JSON Schema for `output_config.format` and `strict: true` tools (Zod 4 native conversion). */
 export function jsonSchemaFor(schema: z.ZodType): Record<string, unknown> {
-  const { $schema: _ignored, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
-  void _ignored;
-  return rest;
+  return stripUnsupportedStrictKeys(z.toJSONSchema(schema)) as Record<string, unknown>;
 }

@@ -4,8 +4,6 @@ import { runTurn, type TurnMode, type TurnResult } from "@/lib/agent/turn";
 import { getConfig, type Config } from "@/lib/config";
 import { redact } from "@/lib/observability/redact";
 
-export const runtime = "nodejs";
-
 export const ChatRequestSchema = z.object({
   conversation_id: z.string().min(1).default("default"),
   message: z.string().trim().min(1, "message is required").max(4000, "message exceeds 4000 chars"),

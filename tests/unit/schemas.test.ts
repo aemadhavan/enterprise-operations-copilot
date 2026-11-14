@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FinalAnswer, jsonSchemaFor, ROUTE_FOR_INTENT, RouterOutput } from "@/lib/agent/schemas";
+import { SearchDocumentsInput } from "@/lib/mcp/tools/read";
 
 describe("schemas (contracts/answer-schema.md)", () => {
   it("maps every intent to the FR-005a route", () => {
@@ -61,5 +62,9 @@ describe("schemas (contracts/answer-schema.md)", () => {
       expect.arrayContaining(["behaviour", "claims", "assumptions", "gaps"]),
     );
     expect(JSON.stringify(jsonSchemaFor(RouterOutput))).not.toContain('"$schema"');
+    const toolSchema = JSON.stringify(jsonSchemaFor(SearchDocumentsInput));
+    expect(toolSchema).not.toContain('"minimum"');
+    expect(toolSchema).not.toContain('"maximum"');
+    expect(toolSchema).not.toContain('"minLength"');
   });
 });
