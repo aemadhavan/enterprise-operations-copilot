@@ -56,6 +56,8 @@ const sampleTurn: ChatTurnResponse = {
     nodes: [
       { id: "SYS-CRM", label: "System", name: "Atlas CRM", classification: "Restricted" },
       { id: "DC-PII", label: "DataClass", name: "Customer PII", classification: "Restricted" },
+      { id: "CTL-07", label: "Control", name: "Periodic access review", classification: null },
+      { id: "PROC-REVIEW", label: "Process", name: "Periodic access review", classification: null },
     ],
     edges: [
       {
@@ -63,6 +65,20 @@ const sampleTurn: ChatTurnResponse = {
         relation: "stores",
         target: "DC-PII",
         condition: null,
+        source_doc: "REF-003",
+      },
+      {
+        source: "CTL-07",
+        relation: "implemented_by",
+        target: "PROC-REVIEW",
+        condition: null,
+        source_doc: "PRC-019",
+      },
+      {
+        source: "SYS-CRM",
+        relation: "feeds",
+        target: "SYS-DWH",
+        condition: "nightly load",
         source_doc: "REF-003",
       },
     ],
@@ -94,7 +110,7 @@ describe("EvidencePanel and citation helpers (T034, US1, US2)", () => {
 
   it("extracts deduplicated source items from citations and graph edges", () => {
     const items = extractSourceItems(sampleTurn.citations, sampleTurn.graph_path.edges);
-    expect(items.map((i) => i.docId)).toEqual(["REF-003", "POL-014"]);
+    expect(items.map((i) => i.docId)).toEqual(["REF-003", "POL-014", "PRC-019"]);
   });
 
   it("formats route display labels for graphrag and baseline modes", () => {
@@ -110,6 +126,9 @@ describe("EvidencePanel and citation helpers (T034, US1, US2)", () => {
     expect(html).toContain("Atlas CRM (Restricted)");
     expect(html).toContain("─stores→");
     expect(html).toContain("Customer PII (Restricted)");
+    expect(html).toContain("Periodic access review (CTL-07)");
+    expect(html).toContain("Periodic access review (PROC-REVIEW)");
+    expect(html).toContain("+1 neighbourhood edges traversed");
     expect(html).toContain("REF-003");
     expect(html).toContain("POL-014");
     expect(html).toContain("Read access only");

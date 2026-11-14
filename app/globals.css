@@ -439,6 +439,20 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 6px;
+}
+
+.evidence-details {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+  font-size: 0.8rem;
+}
+
+.evidence-details > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .node-pill {

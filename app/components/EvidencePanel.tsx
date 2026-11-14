@@ -74,45 +74,47 @@ export function formatCitationChip(c: Citation): {
   };
 }
 
-/** Deduplicated list of cited sources for the Sources section of the Evidence Panel. */
+/**
+ * Deduplicated, document-grouped list of cited sources for the Sources section.
+ * Groups all cited clauses and cited edges (plus any `implemented_by` procedure edge)
+ * under one row per `docId` so the panel stays compact and scannable.
+ */
 export function extractSourceItems(
   citations: Citation[],
   edges: PathEdge[],
 ): { key: string; docId: string; detail: string }[] {
-  const map = new Map<string, { key: string; docId: string; detail: string }>();
+  const byDoc = new Map<string, Set<string>>();
+  const add = (docId: string, ref: string) => {
+    if (!docId) return;
+    let set = byDoc.get(docId);
+    if (!set) {
+      set = new Set<string>();
+      byDoc.set(docId, set);
+    }
+    set.add(ref);
+  };
+
   for (const c of citations) {
     if ("edge" in c) {
-      const k = `${c.edge.source_doc}|edge:${c.edge.source}->${c.edge.target}`;
-      if (!map.has(k)) {
-        map.set(k, {
-          key: k,
-          docId: c.edge.source_doc,
-          detail: `${c.edge.source} ─${c.edge.relation}→ ${c.edge.target}`,
-        });
-      }
+      add(c.edge.source_doc, `${c.edge.source} ─${c.edge.relation}→ ${c.edge.target}`);
     } else {
-      const k = `${c.doc_id}|${c.section}`;
-      if (!map.has(k)) {
-        map.set(k, {
-          key: k,
-          docId: c.doc_id,
-          detail: `§ ${c.section}`,
-        });
-      }
+      const lastSeg = c.section.split(" > ").pop() ?? c.section;
+      const numMatch = lastSeg.match(/^(\d+(?:\.\d+)*)/);
+      add(c.doc_id, `§${numMatch ? numMatch[1] : lastSeg}`);
     }
   }
+
   for (const e of edges) {
-    if (!e.source_doc) continue;
-    const k = `${e.source_doc}|edge:${e.source}->${e.target}`;
-    if (!map.has(k)) {
-      map.set(k, {
-        key: k,
-        docId: e.source_doc,
-        detail: `${e.source} ─${e.relation}→ ${e.target}`,
-      });
+    if (e.source_doc && e.relation === "implemented_by") {
+      add(e.source_doc, `${e.source} ─${e.relation}→ ${e.target}`);
     }
   }
-  return [...map.values()];
+
+  return [...byDoc.entries()].map(([docId, refs]) => ({
+    key: docId,
+    docId,
+    detail: [...refs].join(" · "),
+  }));
 }
 
 export function routeDisplayLabel(route: Route, mode: "graphrag" | "baseline"): string {
@@ -152,11 +154,46 @@ export function EvidencePanel({ turn }: EvidencePanelProps) {
   }
 
   const nodeNames = new Map(turn.graph_path.nodes.map((n) => [n.id, n]));
-  const formatNodeRef = (id: string) => {
+  const formatNodeRef = (id: string, otherId?: string) => {
     const n = nodeNames.get(id);
     if (!n) return id;
-    return n.classification ? `${n.name} (${n.classification})` : n.name;
+    const other = otherId ? nodeNames.get(otherId) : undefined;
+    const sameName = other && other.name === n.name && other.id !== n.id;
+    const suffixParts: string[] = [];
+    if (sameName) suffixParts.push(n.id);
+    if (n.classification) suffixParts.push(n.classification);
+    return suffixParts.length ? `${n.name} (${suffixParts.join(" · ")})` : n.name;
   };
+
+  const citedEdgeKeys = new Set(
+    turn.citations.flatMap((c) =>
+      "edge" in c ? [`${c.edge.source}|${c.edge.relation}|${c.edge.target}`] : [],
+    ),
+  );
+  const isPrimaryEdge = (e: PathEdge) =>
+    citedEdgeKeys.has(`${e.source}|${e.relation}|${e.target}`) || e.relation === "implemented_by";
+
+  const primaryEdges = turn.graph_path.edges.filter(isPrimaryEdge);
+  const secondaryEdges = turn.graph_path.edges.filter((e) => !isPrimaryEdge(e));
+  const shownPrimary = primaryEdges.length > 0 ? primaryEdges : turn.graph_path.edges;
+  const shownSecondary = primaryEdges.length > 0 ? secondaryEdges : [];
+
+  const renderEdgeItem = (e: PathEdge, i: number) => (
+    <li key={`${e.source}-${e.relation}-${e.target}-${i}`} className="graph-edge-item">
+      <span className="edge-node">{formatNodeRef(e.source, e.target)}</span>{" "}
+      <span className="edge-rel">─{e.relation}→</span>{" "}
+      <span className="edge-node">{formatNodeRef(e.target, e.source)}</span>
+      {e.condition && <span className="edge-cond">[{e.condition}]</span>}
+      {e.source_doc && (
+        <a
+          href={`#source-${encodeURIComponent(e.source_doc)}`}
+          className="citation-chip citation-chip-small"
+        >
+          {e.source_doc}
+        </a>
+      )}
+    </li>
+  );
 
   const sources = extractSourceItems(turn.citations, turn.graph_path.edges);
   const latencySec = (turn.latency_ms / 1000).toFixed(2);
@@ -202,7 +239,10 @@ export function EvidencePanel({ turn }: EvidencePanelProps) {
       </section>
 
       <section className="evidence-section" aria-label="Graph path">
-        <h3>Graph path ({turn.graph_path.edges.length} edges)</h3>
+        <h3>
+          Graph path ({shownPrimary.length} cited
+          {shownSecondary.length > 0 ? ` · ${turn.graph_path.edges.length} total` : ""})
+        </h3>
         {turn.graph_path.edges.length === 0 ? (
           <p className="evidence-muted">
             {turn.route === "text"
@@ -211,37 +251,31 @@ export function EvidencePanel({ turn }: EvidencePanelProps) {
           </p>
         ) : (
           <div className="graph-box" data-testid="evidence-graph-path">
-            {turn.graph_path.nodes.length > 0 && (
-              <div className="graph-nodes">
-                {turn.graph_path.nodes.map((n) => (
-                  <span key={n.id} className="node-pill" title={`${n.label}: ${n.id}`}>
-                    <strong>{n.name}</strong>{" "}
-                    <span className="node-id">
-                      ({n.id}
-                      {n.classification ? ` · ${n.classification}` : ""})
-                    </span>
-                  </span>
-                ))}
-              </div>
+            <ul className="graph-edge-list">{shownPrimary.map(renderEdgeItem)}</ul>
+
+            {shownSecondary.length > 0 && (
+              <details className="evidence-details">
+                <summary>+{shownSecondary.length} neighbourhood edges traversed</summary>
+                <ul className="graph-edge-list">{shownSecondary.map(renderEdgeItem)}</ul>
+              </details>
             )}
-            <ul className="graph-edge-list">
-              {turn.graph_path.edges.map((e, i) => (
-                <li key={`${e.source}-${e.relation}-${e.target}-${i}`} className="graph-edge-item">
-                  <span className="edge-node">{formatNodeRef(e.source)}</span>{" "}
-                  <span className="edge-rel">─{e.relation}→</span>{" "}
-                  <span className="edge-node">{formatNodeRef(e.target)}</span>
-                  {e.condition && <span className="edge-cond">[{e.condition}]</span>}
-                  {e.source_doc && (
-                    <a
-                      href={`#source-${encodeURIComponent(e.source_doc)}`}
-                      className="citation-chip citation-chip-small"
-                    >
-                      {e.source_doc}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
+
+            {turn.graph_path.nodes.length > 0 && (
+              <details className="evidence-details">
+                <summary>Nodes in path ({turn.graph_path.nodes.length})</summary>
+                <div className="graph-nodes">
+                  {turn.graph_path.nodes.map((n) => (
+                    <span key={n.id} className="node-pill" title={`${n.label}: ${n.id}`}>
+                      <strong>{n.name}</strong>{" "}
+                      <span className="node-id">
+                        ({n.id}
+                        {n.classification ? ` · ${n.classification}` : ""})
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
       </section>
@@ -331,4 +365,3 @@ export function EvidencePanel({ turn }: EvidencePanelProps) {
     </aside>
   );
 }
-
