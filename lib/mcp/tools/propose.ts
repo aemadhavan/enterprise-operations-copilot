@@ -21,20 +21,18 @@ export const CheckPolicyInput = z.strictObject({
   vendor: z.string().optional().describe("Vendor organisation name or ID, if applicable"),
   start_date: z.string().optional().describe("ISO date YYYY-MM-DD"),
   end_date: z.string().optional().describe("ISO date YYYY-MM-DD"),
-  restricted_access_expected: z.boolean().optional(),
 });
 
 export const ProposeAccessRequestInput = z.strictObject({
-  requester_name: z.string().optional().describe("Full name of the person needing access"),
+  requester_name: z.string().describe("Full name of the person needing access"),
   requester_type: z.enum(["Employee", "Contractor", "Vendor"]),
   sponsor: z.string().optional().describe("Stated Kestrel sponsor / line manager"),
-  system_id: z.string().optional().describe("Target system ID, e.g. SYS-CRM"),
-  access_level: z.enum(["read", "write", "admin"]).optional(),
-  duration_days: z.number().int().optional().describe("Requested duration in calendar days"),
+  system_id: z.string().describe("Target system ID, e.g. SYS-CRM"),
+  access_level: z.enum(["read", "write", "admin"]),
+  duration_days: z.number().int().describe("Requested duration in calendar days"),
   justification: z.string().optional().describe("Business justification for access"),
   vendor: z.string().optional().describe("Vendor organisation name, if vendor staff"),
   supersedes_draft_id: z.string().optional().describe("UUID of an existing proposed draft to supersede"),
-  conversation_id: z.string().optional(),
 });
 
 /**

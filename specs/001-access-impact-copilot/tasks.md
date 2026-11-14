@@ -142,7 +142,7 @@
 
 ## Phase 7: M6 Deploy and docs (Sun ≈ 14:00, feature freeze)
 
-- [ ] T071 **P0** Deploy to Vercel: env vars, Neon production branch, run migrate + ingest, smoke the hero flow (quickstart.md walkthrough) — ADR-001
+- [X] T071 **P0** Deploy to Vercel: env vars, Neon production branch, run migrate + ingest, smoke the hero flow (quickstart.md walkthrough) — ADR-001
 - [X] T072 [P] **P0** Write README: one-liner, demo GIF placeholder, live link, problem, architecture diagram, results table (as measured; Tier 1a only in v0.1, Tier 1b/2 marked "v0.2"), governance, limitations (incl. any T050 fallback), quickstart, roadmap in `README.md` — PRD §13
 - [ ] T073 [P] **P2** Verify fresh clone → running locally in ≤ 10 min following `specs/001-access-impact-copilot/quickstart.md`; fix gaps; run an accessibility pass on the hero flow (keyboard-only, axe check for WCAG 2.2 AA contrast, citations are real links) — PRD §8.2
 

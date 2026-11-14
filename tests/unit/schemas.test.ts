@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FinalAnswer, jsonSchemaFor, ROUTE_FOR_INTENT, RouterOutput } from "@/lib/agent/schemas";
-import { SearchDocumentsInput } from "@/lib/mcp/tools/read";
+import { proposeTools } from "@/lib/mcp/tools/propose";
+import { readTools, SearchDocumentsInput } from "@/lib/mcp/tools/read";
 
 describe("schemas (contracts/answer-schema.md)", () => {
   it("maps every intent to the FR-005a route", () => {
@@ -66,5 +67,18 @@ describe("schemas (contracts/answer-schema.md)", () => {
     expect(toolSchema).not.toContain('"minimum"');
     expect(toolSchema).not.toContain('"maximum"');
     expect(toolSchema).not.toContain('"minLength"');
+  });
+
+  it("keeps total optional parameters across all agent strict schemas <= 24 (Anthropic grammar limit)", () => {
+    const countOptional = (schema: Record<string, unknown>): number => {
+      const props = Object.keys((schema.properties as Record<string, unknown>) ?? {});
+      const req = new Set((schema.required as string[]) ?? []);
+      return props.filter((k) => !req.has(k)).length;
+    };
+    const allTools = [...readTools(), ...proposeTools()];
+    const totalOptional =
+      allTools.reduce((sum, t) => sum + countOptional(jsonSchemaFor(t.input)), 0) +
+      countOptional(jsonSchemaFor(FinalAnswer));
+    expect(totalOptional).toBeLessThanOrEqual(24);
   });
 });

@@ -60,7 +60,6 @@ export const defaultReadDeps: ReadToolDeps = {
 export const SearchDocumentsInput = z.strictObject({
   query: z.string().min(1).describe("Natural-language search query"),
   k: z.number().int().min(1).max(10).optional().describe("Number of chunks, default 8"),
-  mode: z.enum(["baseline", "graphrag"]).optional(),
 });
 
 export const GetSectionInput = z.strictObject({

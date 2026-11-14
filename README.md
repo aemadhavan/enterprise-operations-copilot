@@ -6,7 +6,7 @@
 
 ## Live Demo & Walkthrough
 
-- **Live Deployment:** `[Live Link Placeholder — https://enterprise-operation-copilot.vercel.app]`
+- **Live Deployment:** [https://enterprise-operations-copilot.vercel.app](https://enterprise-operations-copilot.vercel.app)
 - **Demo Walkthrough GIF:**
 
 ![Demo Walkthrough Placeholder](docs/assets/demo-placeholder.gif)
