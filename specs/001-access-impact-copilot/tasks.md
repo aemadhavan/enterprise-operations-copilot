@@ -114,7 +114,7 @@
 
 ### Draft card and approver UI
 - [X] T057 [US3] **P0** Build draft approval card (keyboard-operable, SoD warning, prerequisites, policy check, Submit/Cancel; "Submit request" wording) and status timeline in `app/components/DraftCard.tsx`, `app/components/Timeline.tsx` — US3, FR-023, FR-024
-- [ ] T058 [P] [US3] **P0** Build Simulated approver panel (one button per role) and audit log page in `app/approver/page.tsx`, `app/audit/page.tsx`, `app/api/audit/route.ts` — FR-024a, FR-015
+- [X] T058 [P] [US3] **P0** Build Simulated approver panel (one button per role) and audit log page in `app/approver/page.tsx`, `app/audit/page.tsx`, `app/api/audit/route.ts` — FR-024a, FR-015
 
 ---
 
