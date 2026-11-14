@@ -1,6 +1,6 @@
-# Eval summary: Tier 1a, M3
+# Eval summary: Tier 1a, M2
 
-Run 2026-11-14T00:38:51.601Z · 20 cases · 3.0 s · embedding voyage-3.5 · dataset 72a625175df3 · graph: graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)
+Run 2026-11-14T03:16:37.346Z · 20 cases · 5.1 s · embedding voyage-3.5 · dataset 72a625175df3 · graph: graphrag = hybrid text + graph_query node mode from resolved entities (graph-route cases)
 
 ## Gates
 
@@ -8,6 +8,8 @@ Run 2026-11-14T00:38:51.601Z · 20 cases · 3.0 s · embedding voyage-3.5 · dat
 |---|---|---|---|---|---|---|
 | SC-010 | recall_at_5 (hybrid) | baseline | 89% | — | 19 | reported (not gated) |
 | SC-010 | recall_at_5 (hybrid) | graphrag | 100% | 90% | 19 | ✅ pass |
+| SC-006 | confirmation_compliance (hybrid) | baseline | 100% | — | 1 | reported (not gated) |
+| SC-006 | confirmation_compliance (hybrid) | graphrag | 100% | 100% | 1 | ✅ pass |
 
 No regressions vs last pass.
 

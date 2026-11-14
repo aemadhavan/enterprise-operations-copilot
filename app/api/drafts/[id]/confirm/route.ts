@@ -6,6 +6,7 @@ import { createConfirmClient } from "@/lib/mcp/client";
 import type { ConfirmationEvent } from "@/lib/mcp/registry";
 import { createMcpServer } from "@/lib/mcp/server";
 import { writeTools } from "@/lib/mcp/tools/write";
+import { recordApprovalDecision } from "@/lib/observability/langfuse";
 import { getApprovalEngine } from "@/lib/workflow/in-memory";
 
 export interface AccessRequestSubmittedEvent {
@@ -122,6 +123,16 @@ export async function POST(
       await emitSubmitted(event);
     }
 
+    const decisionTrace = await recordApprovalDecision({
+      type: "confirmation",
+      draft_id: id,
+      request_id: res.request_id,
+      actor: confirmed_by,
+      decision: "confirmed",
+      sla_breached: false,
+      at: confirmation.at,
+    });
+
     return NextResponse.json({
       request_id: res.request_id,
       status: res.request_status,
@@ -129,6 +140,7 @@ export async function POST(
       sla_business_days: res.sla_business_days,
       idempotent_replay: res.idempotent_replay,
       event,
+      trace_id: decisionTrace.trace_id,
     });
   } finally {
     await client.close();

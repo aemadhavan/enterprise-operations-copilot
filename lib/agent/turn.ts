@@ -8,6 +8,7 @@ import { proposeTools } from "@/lib/mcp/tools/propose";
 import { readTools } from "@/lib/mcp/tools/read";
 import { createClient, type ModelClient } from "@/lib/model";
 import { costUsd } from "@/lib/model/pricing";
+import { type LangfuseClientLike, recordTurnTrace } from "@/lib/observability/langfuse";
 import { redact } from "@/lib/observability/redact";
 import type { PolicyBreach } from "@/lib/policy/checks";
 import { routeQuestion, type RouteDecision } from "@/lib/router";
@@ -267,6 +268,7 @@ export interface TurnDeps {
   tools?: () => Promise<McpToolClient>;
   textRoute?: typeof answerTextRoute;
   refuseRoute?: typeof answerRefuseRoute;
+  langfuse?: LangfuseClientLike;
 }
 
 /**
@@ -399,6 +401,30 @@ export async function runTurn(
       answer.claims.flatMap((c) => c.citations).map((c) => [JSON.stringify(c), c]),
     ).values(),
   ];
+  const confidence = computeConfidence(answer, retrieved);
+  const latency_ms = Date.now() - t0;
+  const cost_usd = Number(cost.toFixed(6));
+  const formattedToolCalls = toolCalls.map(({ name, input, ok, ms }) => ({ name, input, ok, ms }));
+
+  const trace = await recordTurnTrace({
+    question,
+    mode,
+    intent: decision.intent,
+    risk: decision.risk,
+    route,
+    retrievals: retrieved.chunks,
+    graph_edges: graph_path.edges,
+    tool_calls: formattedToolCalls,
+    draft_ids: draft ? [draft.draft_id] : [],
+    behaviour: answer.behaviour,
+    confidence,
+    citations,
+    usage,
+    cost_usd,
+    latency_ms,
+    client: opts.langfuse,
+  });
+
   return {
     route,
     intent: decision.intent,
@@ -409,20 +435,20 @@ export async function runTurn(
       claims: answer.claims,
       assumptions: answer.assumptions,
       gaps: answer.gaps,
-      confidence: computeConfidence(answer, retrieved),
+      confidence,
       behaviour: answer.behaviour,
       legitimate_path: answer.legitimate_path,
       clarifying_question: answer.clarifying_question,
     },
     citations,
     graph_path,
-    tool_calls: toolCalls.map(({ name, input, ok, ms }) => ({ name, input, ok, ms })),
+    tool_calls: formattedToolCalls,
     draft,
     entities: decision.entities,
     dropped_citations: dropped,
-    latency_ms: Date.now() - t0,
-    cost_usd: Number(cost.toFixed(6)),
+    latency_ms,
+    cost_usd,
     usage,
-    trace_id: null, // Langfuse arrives in T059
+    trace_id: trace.trace_id,
   };
 }

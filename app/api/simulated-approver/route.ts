@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { recordApprovalDecision } from "@/lib/observability/langfuse";
 import { getApprovalEngine } from "@/lib/workflow/in-memory";
 
 const SimulatedApproverBody = z.object({
@@ -89,7 +90,22 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     const timeline = await getApprovalEngine().resume(parsed.data);
-    return NextResponse.json(timeline);
+    const step = timeline.steps.find((s) => s.role === parsed.data.role);
+    const slaBreached = Boolean(
+      (step as { sla_breached?: boolean } | undefined)?.sla_breached ||
+        (timeline as { sla_breached?: boolean }).sla_breached ||
+        timeline.steps.some((s) => (s as { sla_breached?: boolean }).sla_breached),
+    );
+    const decisionTrace = await recordApprovalDecision({
+      type: "approver_step",
+      request_id: parsed.data.request_id,
+      draft_id: (timeline as { draft_id?: string }).draft_id ?? null,
+      role: parsed.data.role,
+      actor: parsed.data.actor ?? parsed.data.role,
+      decision: parsed.data.decision,
+      sla_breached: slaBreached,
+    });
+    return NextResponse.json({ ...timeline, trace_id: decisionTrace.trace_id });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const status = /Unknown request_id/i.test(message) ? 404 : 400;

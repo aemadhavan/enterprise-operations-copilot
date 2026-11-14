@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cancelDraft } from "@/lib/drafts/drafts";
+import { recordApprovalDecision } from "@/lib/observability/langfuse";
 
 /**
  * POST /api/drafts/{id}/cancel (T046, contracts/http-api.md).
@@ -32,8 +33,17 @@ export async function POST(
     );
   }
 
+  const decisionTrace = await recordApprovalDecision({
+    type: "cancellation",
+    draft_id: id,
+    actor,
+    decision: "cancelled",
+    sla_breached: false,
+  });
+
   return NextResponse.json({
     draft_id: id,
     status: "cancelled",
+    trace_id: decisionTrace.trace_id,
   });
 }
