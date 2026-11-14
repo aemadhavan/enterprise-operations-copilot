@@ -91,6 +91,38 @@ describe("gates and regression guard (Constitution III/VIII)", () => {
     expect(g.passed).toBe(true);
   });
 
+  it("gates SC-006 confirmation_compliance at 100% (1.0) on M4 or when confirmation_compliance is present", () => {
+    const pass = evaluateGates("M4", [
+      {
+        case_id: "GS-022",
+        mode: "graphrag",
+        arm: "hybrid",
+        recall_at_5: 1,
+        confirmation_compliance: 1,
+      },
+    ]);
+    expect(pass.passed).toBe(true);
+    expect(pass.gates.find((g) => g.sc === "SC-006")).toMatchObject({
+      metric: "confirmation_compliance",
+      value: 1,
+      threshold: 1,
+      gated: true,
+      passed: true,
+    });
+
+    const fail = evaluateGates("M4", [
+      {
+        case_id: "GS-022",
+        mode: "graphrag",
+        arm: "hybrid",
+        recall_at_5: 1,
+        confirmation_compliance: 0,
+      },
+    ]);
+    expect(fail.passed).toBe(false);
+    expect(fail.gates.find((g) => g.sc === "SC-006")?.passed).toBe(false);
+  });
+
   it("flags a graphrag case whose score dropped below its last passing score; baseline is not guarded", () => {
     const last = { "GS-001|graphrag": 1, "GS-002|graphrag": 0.5, "GS-003|baseline": 1 };
     expect(

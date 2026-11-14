@@ -5,15 +5,26 @@ import type { CaseResult, Milestone, Mode } from "./types";
 export const RESULTS_DIR = "evaluation/results";
 export const LAST_PASS = path.join(RESULTS_DIR, "last-pass.json");
 
-/** Tier-1a gates by milestone (spec §6). Later milestones add SC-006 etc. */
-const GATES: Record<Milestone, { metric: "recall_at_5"; threshold: number; sc: string }[]> = {
+export type GateMetric = "recall_at_5" | "confirmation_compliance";
+
+/** Tier-1a gates by milestone (spec §6, T054 SC-006). */
+const GATES: Record<Milestone, { metric: GateMetric; threshold: number; sc: string }[]> = {
   M2: [{ metric: "recall_at_5", threshold: 0.9, sc: "SC-010" }],
   M3: [{ metric: "recall_at_5", threshold: 0.9, sc: "SC-010" }],
-  M4: [{ metric: "recall_at_5", threshold: 0.9, sc: "SC-010" }],
-  M5: [{ metric: "recall_at_5", threshold: 0.9, sc: "SC-010" }],
+  M4: [
+    { metric: "recall_at_5", threshold: 0.9, sc: "SC-010" },
+    { metric: "confirmation_compliance", threshold: 1.0, sc: "SC-006" },
+  ],
+  M5: [
+    { metric: "recall_at_5", threshold: 0.9, sc: "SC-010" },
+    { metric: "confirmation_compliance", threshold: 1.0, sc: "SC-006" },
+  ],
 };
 
-type Scored = Pick<CaseResult, "case_id" | "mode" | "arm" | "recall_at_5">;
+type Scored = Pick<
+  CaseResult,
+  "case_id" | "mode" | "arm" | "recall_at_5" | "confirmation_compliance"
+>;
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
@@ -23,14 +34,25 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
  */
 export const GATED_MODES: Mode[] = ["graphrag"];
 
-/** Mean recall per mode; only the hybrid arm is gated. Skipped (null) cases are excluded. */
+/** Mean metric per mode; only the hybrid arm is gated. Skipped (null) cases are excluded. */
 export function evaluateGates(milestone: Milestone, results: Scored[]) {
   const modes = [...new Set(results.map((r) => r.mode))];
-  const gates = GATES[milestone].flatMap((g) => {
+  const hasConfirmationMetric = results.some(
+    (r) => r.confirmation_compliance !== undefined && r.confirmation_compliance !== null,
+  );
+  const gateDefs = [...GATES[milestone]];
+  if (
+    hasConfirmationMetric &&
+    !gateDefs.some((g) => g.metric === "confirmation_compliance")
+  ) {
+    gateDefs.push({ metric: "confirmation_compliance", threshold: 1.0, sc: "SC-006" });
+  }
+
+  const gates = gateDefs.flatMap((g) => {
     return modes.map((mode) => {
       const vals = results
-        .filter((r) => r.mode === mode && r.arm === "hybrid" && r.recall_at_5 !== null)
-        .map((r) => r.recall_at_5 as number);
+        .filter((r) => r.mode === mode && r.arm === "hybrid" && r[g.metric] !== null && r[g.metric] !== undefined)
+        .map((r) => r[g.metric] as number);
       const value = mean(vals);
       return {
         ...g,
