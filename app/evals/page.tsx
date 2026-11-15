@@ -2,8 +2,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import React from "react";
 
-export const dynamic = "force-dynamic";
-
 export interface ParsedSummarySection {
   title: string;
   lines: string[];
