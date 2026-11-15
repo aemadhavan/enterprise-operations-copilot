@@ -1,4 +1,6 @@
-name: eval-fast (Tier 1a)
+# DB-backed integration tests and the Tier-1a eval run locally only until v0.2
+# (Neon serverless driver needs a WebSocket proxy; no API keys in CI).
+name: ci (validate, typecheck, unit tests)
 
 on:
   push:
@@ -12,33 +14,9 @@ concurrency:
 
 jobs:
   tier-1a:
-    name: Validate, Typecheck, Test & Tier-1a Eval
+    name: ci (validate, typecheck, unit tests)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: copilot_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d copilot_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      # Local pgvector service only: CI must never write to production Neon.
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/copilot_ci
-      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      EMBEDDING_PROVIDER: voyage
-      MODEL_PROVIDER: anthropic
-      APPROVAL_ENGINE: in-memory
 
     steps:
       - name: Checkout repository
@@ -69,14 +47,3 @@ jobs:
 
       - name: Unit tests
         run: pnpm test:unit
-
-      - name: Database migrate & ingest (local Postgres + pgvector)
-        run: |
-          pnpm db:migrate
-          pnpm ingest
-
-      - name: Integration tests
-        run: pnpm test:integration
-
-      - name: Tier-1a fast evaluation gate (SC-010 & SC-006)
-        run: pnpm eval:fast
