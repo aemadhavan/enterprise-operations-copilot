@@ -68,7 +68,9 @@ All numbers below come from one canonical run per tier, over the 30-case golden 
 | **1b** (`eval:model`, 3 runs) | `2026-11-14T05-35-57-071Z-1b-graphrag.jsonl` | 2026-11-14 05:35:57 | Route, tool, safety, clarify, latency, cost (90 turns) |
 | **2** (`eval:full`, Opus judge) | `2026-11-14T05-41-22-177Z-2-{graphrag,baseline}.jsonl` | 2026-11-14 05:41:22 | Groundedness, citation accuracy, completeness |
 
-Full per-category breakdown and a 12-case hand-check audit: [`docs/evaluation-results.md`](docs/evaluation-results.md). The `/evals` page renders `evaluation/results/summary.md`, which is the most recent single Tier-1b run, not the canonical 3-run file above.
+Full per-category breakdown and a 12-case hand-check audit: [`docs/evaluation-results.md`](docs/evaluation-results.md). The `/evals` page shows the latest single Tier-1b run (`evaluation/results/summary.md`); the 3-run figures in this README come from `2026-11-14T05-35-57-071Z-1b-graphrag.jsonl`.
+
+**How these were run:** CI (`.github/workflows/eval-fast.yml`) runs fixture validation, typecheck and unit tests only. The Tier 1a, 1b and 2 evals are run locally; the committed result files in `evaluation/results/` are the evidence.
 
 ### Gate Summary
 
@@ -107,7 +109,7 @@ Tool correctness: the only failure across the three runs is `GS-024` in run 1. T
 
 - **The knowledge graph is hand-curated** from the 15 synthetic documents in `data/raw/`. Nothing is extracted automatically.
 - **The golden set and the graph have the same author.** 100% graphrag recall shows the traversal finds what the author connected. It is an upper bound on this fixture, not evidence that the approach generalises to unseen documents or questions.
-- **Router accuracy** was 90% before prompt tuning and 100% on a single run after; the canonical 3-run file above then shows 100% in each run. The pre-tuning run is not kept in `evaluation/results/`. The router prompt was tuned against this same golden set.
+- **Router accuracy** was 100% on a single run after prompt tuning (`2026-11-14T05-57-05-594Z-1b-graphrag.jsonl`, 30 cases), and 100% in each of the 3 canonical runs. The router prompt was tuned against this same golden set.
 - **`GS-015` is a known answer-quality failure** (completeness 0.25). Asked who approves contractor admin access to Pulse HRIS, the copilot lists an approval chain instead of leading with the fact that contractor admin access to a Restricted production system is not permitted (POL-022 §4), with exceptions only through POL-041.
 - 30 cases, one synthetic company, one judge model. Treat differences of a few points as noise.
 
@@ -134,8 +136,8 @@ Tool correctness: the only failure across the three runs is `GS-024` in run 1. T
 | Text, graph and action routes with citations, assumptions, gaps, confidence | `lib/router`, `lib/agent` | Shipped, evaluated (Tiers 1a, 1b, 2) |
 | Clarify route (single clarifying question) | `lib/router`, `GS-029`, `GS-030` | Shipped, evaluated (clarify 100% in all 3 Tier-1b runs) |
 | Contractor onboarding tickets (`propose_onboarding_ticket`, `create_onboarding_ticket`) with vendor-assessment expiry check | `lib/mcp/tools/propose.ts`, `lib/mcp/tools/write.ts` | Shipped, evaluated (`GS-024`; failed tool correctness in 1 of 3 runs) |
-| Tier 1b / Tier 2 eval runner, versioned judge prompts, `eval-pr.yml` | `evaluation/runner`, `.github/workflows` | Shipped, run (canonical files above) |
-| `/evals` dashboard | `app/evals/page.tsx` | Shipped (renders `evaluation/results/summary.md`) |
+| Tier 1a / 1b / 2 eval runner, versioned judge prompts | `evaluation/runner`, `evaluation/judges` | Shipped, run locally (canonical files above). `eval-pr.yml` exists but skips evals without Neon branch secrets |
+| `/evals` dashboard | `app/evals/page.tsx` | Shipped (shows the latest single Tier-1b run, `evaluation/results/summary.md`) |
 | `graphrag` vs `baseline` compare toggle in the chat UI | `app/components/CompareToggle.tsx` | Shipped; the two modes are evaluated by the runner, the UI toggle itself has no automated test |
 | Graph-backed personal-name redaction (`T066`) | `lib/observability/redact.ts` | Shipped |
 | Amazon Bedrock chat provider (`MODEL_PROVIDER=bedrock`) | `lib/model/bedrock.ts` | **Implemented, not yet evaluated**: no eval run used Bedrock |
@@ -205,6 +207,7 @@ Open `http://localhost:3000` to try the preset questions, inspect citations and 
 ## Roadmap
 
 - **Durable approval workflow (`T050`):** finish the Vercel Workflow engine (add the `workflow` dependency and `withWorkflow`, run hooks and SLA `sleep()` for real instead of delegating to in-memory), then evaluate it.
+- **DB-backed CI evals:** run integration tests and Tier 1a/1b/2 in CI (Neon WebSocket proxy or `pg` driver for the local service, API-key secrets, ephemeral Neon branches).
 - **Evaluate the Bedrock provider (`T068`):** run Tier 1b and Tier 2 with `MODEL_PROVIDER=bedrock` and publish the comparison.
 - **Fix `GS-015`:** lead with "not permitted" for contractor admin access to Restricted production systems.
 - **Stabilise `GS-024`** tool correctness across runs, and record failing tool and arguments in the result files.
