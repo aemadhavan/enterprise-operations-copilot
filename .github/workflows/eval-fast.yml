@@ -32,7 +32,8 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/copilot_ci' }}
+      # Local pgvector service only: CI must never write to production Neon.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/copilot_ci
       VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       EMBEDDING_PROVIDER: voyage
@@ -53,8 +54,6 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -71,10 +70,10 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
-      - name: Database migrate & seed (Neon / Postgres + pgvector)
+      - name: Database migrate & ingest (local Postgres + pgvector)
         run: |
           pnpm db:migrate
-          pnpm db:seed
+          pnpm ingest
 
       - name: Integration tests
         run: pnpm test:integration

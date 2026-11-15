@@ -16,7 +16,9 @@ jobs:
     timeout-minutes: 30
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # No DATABASE_URL here: evals run only against an ephemeral Neon branch, never production.
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
       VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
@@ -35,12 +37,12 @@ jobs:
 
       - name: Create ephemeral Neon branch (when NEON_API_KEY is configured)
         id: neon-branch
-        if: ${{ secrets.NEON_API_KEY != '' && secrets.NEON_PROJECT_ID != '' }}
+        if: ${{ env.NEON_API_KEY != '' && env.NEON_PROJECT_ID != '' }}
         uses: neondatabase/create-branch-action@v5
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ env.NEON_PROJECT_ID }}
           branch_name: pr-${{ github.event.number || github.run_id }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+          api_key: ${{ env.NEON_API_KEY }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,8 +54,6 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -64,21 +64,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Skip evals (no ephemeral Neon branch configured)
+        if: ${{ steps.neon-branch.outcome != 'success' }}
+        run: echo "::notice::NEON_API_KEY/NEON_PROJECT_ID not set; skipping Tier-1b/Tier-2 evals rather than touching production."
+
       - name: Database migrate & ingest corpus + graph seed
+        if: ${{ steps.neon-branch.outcome == 'success' }}
         env:
-          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
         run: |
           pnpm db:migrate
           pnpm ingest
 
       - name: Tier-1b model evaluation gate (SC-004, SC-005, SC-007)
+        if: ${{ steps.neon-branch.outcome == 'success' }}
         env:
-          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
         run: pnpm eval:model --milestone M4
 
       - name: Tier-2 Opus judge evaluation gate (SC-001, SC-002, SC-003)
+        if: ${{ steps.neon-branch.outcome == 'success' }}
         env:
-          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url || secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ steps.neon-branch.outputs.db_url }}
         run: pnpm eval:full --mode both --milestone M5
 
       - name: Upload evaluation results artifact
@@ -92,6 +99,6 @@ jobs:
         if: ${{ always() && steps.neon-branch.outcome == 'success' }}
         uses: neondatabase/delete-branch-action@v3
         with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          project_id: ${{ env.NEON_PROJECT_ID }}
           branch: pr-${{ github.event.number || github.run_id }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+          api_key: ${{ env.NEON_API_KEY }}
